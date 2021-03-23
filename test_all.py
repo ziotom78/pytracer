@@ -132,6 +132,10 @@ class TestHdrImage(unittest.TestCase):
             assert img.get_pixel(1, 1).is_close(Color(4.0e2, 5.0e2, 6.0e2))
             assert img.get_pixel(2, 1).is_close(Color(7.0e2, 8.0e2, 9.0e2))
 
+    def test_pfm_read_wrong(self):
+        buf = BytesIO(b"PF\n3 2\n-1.0\nstop")
+        with pytest.raises(InvalidPfmFileFormat):
+            _ = read_pfm_image(buf)
 
 if __name__ == '__main__':
     unittest.main()

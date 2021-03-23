@@ -24,7 +24,11 @@ def _write_float(stream, value, endianness=Endianness.LITTLE_ENDIAN):
 
 def _read_float(stream, endianness=Endianness.LITTLE_ENDIAN):
     format_str = _FLOAT_STRUCT_FORMAT[endianness]
-    return struct.unpack(format_str, stream.read(4))[0]
+
+    try:
+        return struct.unpack(format_str, stream.read(4))[0]
+    except struct.error:
+        raise InvalidPfmFileFormat("impossible to read binary data from the file")
 
 
 class HdrImage:
@@ -102,12 +106,14 @@ def _parse_endianness(line: str):
     try:
         value = float(line)
     except ValueError:
-        raise InvalidPfmFileFormat("invalid specification of the endianness")
+        raise InvalidPfmFileFormat("missing endianness specification")
 
-    if value > 0:
+    if value == 1.0:
         return Endianness.BIG_ENDIAN
-    else:
+    elif value == -1.0:
         return Endianness.LITTLE_ENDIAN
+    else:
+        raise InvalidPfmFileFormat("invalid endianness specification")
 
 
 def read_pfm_image(stream):
