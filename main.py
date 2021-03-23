@@ -1,4 +1,4 @@
-def print_hi(name):
+def print_hi(name: str):
     print(f'Hello, {name}')
 
 
