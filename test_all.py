@@ -101,6 +101,7 @@ class TestHdrImage(unittest.TestCase):
         line = BytesIO(b"hello\nworld")
         assert _read_line(line) == "hello"
         assert _read_line(line) == "world"
+        assert _read_line(line) == ""
 
     def test_pfm_parse_img_size(self):
         assert _parse_img_size("3 2") == (3, 2)
