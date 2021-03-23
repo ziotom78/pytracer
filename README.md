@@ -11,3 +11,7 @@ You need Python 3.8 or higher. To install the dependencies, run the following co
 To check that the code works as expected, you can run the suite of tests using the following command:
 
     pytest
+
+## License
+
+The code is released under a MIT license. See the file [LICENSE.md](./LICENSE.md)
