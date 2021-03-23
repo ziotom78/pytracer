@@ -117,6 +117,9 @@ class TestHdrImage(unittest.TestCase):
         assert _parse_endianness("-1.0") == Endianness.LITTLE_ENDIAN
 
         with pytest.raises(InvalidPfmFileFormat):
+            _ = _parse_endianness("2.0")
+
+        with pytest.raises(InvalidPfmFileFormat):
             _ = _parse_endianness("abc")
 
     def test_pfm_read(self):
