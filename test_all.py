@@ -43,6 +43,13 @@ class TestColor(unittest.TestCase):
         prod_col = Color(1.0, 2.0, 3.0) * 2.0
         assert prod_col.is_close(Color(2.0, 4.0, 6.0))
 
+    def test_luminosity(self):
+        col1 = Color(1.0, 2.0, 3.0)
+        col2 = Color(5.0, 7.0, 9.0)
+
+        assert pytest.approx(2.0) == col1.luminosity()
+        assert pytest.approx(7.0) == col2.luminosity()
+
 
 # This is the content of "reference_le.pfm" (little-endian file)
 LE_REFERENCE_BYTES = bytes([
@@ -157,7 +164,6 @@ class TestHdrImage(unittest.TestCase):
         buf = BytesIO(b"PF\n3 2\n-1.0\nstop")
         with pytest.raises(InvalidPfmFileFormat):
             _ = read_pfm_image(buf)
-
 
 if __name__ == '__main__':
     unittest.main()

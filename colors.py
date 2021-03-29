@@ -58,6 +58,9 @@ class Color:
                 self.b * other,
             )
 
+    def luminosity(self):
+        return (max(self.r, self.g, self.b) + min(self.r, self.g, self.b)) / 2
+
     def is_close(self, other, epsilon=1e-6):
         return (are_close(self.r, other.r, epsilon=epsilon) and
                 are_close(self.g, other.g, epsilon=epsilon) and
