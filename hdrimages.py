@@ -113,12 +113,7 @@ class HdrImage:
             self.pixels[i].g = _clamp(self.pixels[i].g)
             self.pixels[i].b = _clamp(self.pixels[i].b)
 
-    def write_ldr_image(self, stream, format, factor, normalize=True, luminosity=None, gamma=1.0):
-        if normalize:
-            self.normalize_image(factor=factor, luminosity=luminosity)
-
-        self.clamp_image()
-
+    def write_ldr_image(self, stream, format, gamma=1.0):
         from PIL import Image
         img = Image.new("RGB", (self.width, self.height))
 

@@ -35,12 +35,12 @@ class Parameters:
         try:
             self.factor = float(sys.argv[2])
         except ValueError:
-            raise RuntimeError(f"Invalid factor ('{sys.argv[2]}'), it must be a positive floating-point number.")
+            raise RuntimeError(f"Invalid factor ('{sys.argv[2]}'), it must be a floating-point number.")
 
         try:
             self.gamma = float(sys.argv[3])
         except ValueError:
-            raise RuntimeError(f"Invalid gamma ('{sys.argv[3]}'), it must be a positive floating-point number.")
+            raise RuntimeError(f"Invalid gamma ('{sys.argv[3]}'), it must be a floating-point number.")
 
         self.output_png_file_name = sys.argv[4]
 
@@ -58,8 +58,11 @@ def main(argv):
 
     print(f"File {parameters.input_pfm_file_name} has been read from disk.")
 
+    img.normalize_image(factor=parameters.factor)
+    img.clamp_image()
+
     with open(parameters.output_png_file_name, "wb") as outf:
-        img.write_ldr_image(stream=outf, format="PNG", factor=parameters.factor, gamma=parameters.gamma)
+        img.write_ldr_image(stream=outf, format="PNG", gamma=parameters.gamma)
 
     print(f"File {parameters.output_png_file_name} has been written to disk.")
 
