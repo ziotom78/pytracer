@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # The MIT License (MIT)
 #
 # Copyright © 2021 Maurizio Tomasi
@@ -14,10 +16,54 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from dataclasses import dataclass
+import hdrimages
 
-def print_hi(name: str):
-    print(f'Hello, {name}')
+@dataclass
+class Parameters:
+    input_pfm_file_name: str = ""
+    factor:float = 0.2
+    gamma:float = 1.0
+    output_png_file_name: str = ""
+
+    def parse_command_line(self, argv):
+        if len(sys.argv) != 5:
+            raise RuntimeError("Usage: main.py INPUT_PFM_FILE FACTOR GAMMA OUTPUT_PNG_FILE")
+
+        self.input_pfm_file_name = sys.argv[1]
+
+        try:
+            self.factor = float(sys.argv[2])
+        except ValueError:
+            raise RuntimeError(f"Invalid factor ('{sys.argv[2]}'), it must be a positive floating-point number.")
+
+        try:
+            self.gamma = float(sys.argv[3])
+        except ValueError:
+            raise RuntimeError(f"Invalid gamma ('{sys.argv[3]}'), it must be a positive floating-point number.")
+
+        self.output_png_file_name = sys.argv[4]
+
+
+def main(argv):
+    parameters = Parameters()
+    try:
+        parameters.parse_command_line(argv)
+    except RuntimeError as err:
+        print("Error: ", err)
+        return
+
+    with open(parameters.input_pfm_file_name, "rb") as inpf:
+        img = hdrimages.read_pfm_image(inpf)
+
+    print(f"File {parameters.input_pfm_file_name} has been read from disk.")
+
+    with open(parameters.output_png_file_name, "wb") as outf:
+        img.write_ldr_image(stream=outf, format="PNG", factor=parameters.factor, gamma=parameters.gamma)
+
+    print(f"File {parameters.output_png_file_name} has been written to disk.")
 
 
 if __name__ == '__main__':
-    print_hi('world')
+    import sys
+    main(sys.argv)
