@@ -165,5 +165,37 @@ class TestHdrImage(unittest.TestCase):
         with pytest.raises(InvalidPfmFileFormat):
             _ = read_pfm_image(buf)
 
+    def test_average_luminosity(self):
+        img = HdrImage(2, 1)
+
+        img.set_pixel(0, 0, Color(0.5e1, 1.0e1, 1.5e1))
+        img.set_pixel(1, 0, Color(0.5e3, 1.0e3, 1.5e3))
+
+        print(img.average_luminosity(delta=0.0))
+        assert pytest.approx(100.0) == img.average_luminosity(delta=0.0)
+
+    def test_normalize_image(self):
+        img = HdrImage(2, 1)
+
+        img.set_pixel(0, 0, Color(0.5e1, 1.0e1, 1.5e1))
+        img.set_pixel(1, 0, Color(0.5e3, 1.0e3, 1.5e3))
+
+        img.normalize_image(factor=1000.0, luminosity=100.0)
+        assert img.get_pixel(0, 0).is_close(Color(0.5e2, 1.0e2, 1.5e2))
+        assert img.get_pixel(1, 0).is_close(Color(0.5e4, 1.0e4, 1.5e4))
+
+    def test_clamp_image(self):
+        img = HdrImage(2, 1)
+
+        img.set_pixel(0, 0, Color(0.5e1, 1.0e1, 1.5e1))
+        img.set_pixel(1, 0, Color(0.5e3, 1.0e3, 1.5e3))
+
+        img.clamp_image()
+
+        for cur_pixel in img.pixels:
+            assert (cur_pixel.r >= 0) and (cur_pixel.r <= 1)
+            assert (cur_pixel.g >= 0) and (cur_pixel.g <= 1)
+            assert (cur_pixel.b >= 0) and (cur_pixel.b <= 1)
+
 if __name__ == '__main__':
     unittest.main()

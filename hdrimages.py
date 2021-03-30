@@ -16,6 +16,7 @@
 
 
 from colors import Color
+import math
 import struct
 from enum import Enum
 
@@ -46,6 +47,10 @@ def _read_float(stream, endianness=Endianness.LITTLE_ENDIAN):
         return struct.unpack(format_str, stream.read(4))[0]
     except struct.error:
         raise InvalidPfmFileFormat("impossible to read binary data from the file")
+
+
+def _clamp(x: float) -> float:
+    return x / (1 + x)
 
 
 class HdrImage:
@@ -87,6 +92,46 @@ class HdrImage:
                 _write_float(stream, color.r, endianness=endianness)
                 _write_float(stream, color.g, endianness=endianness)
                 _write_float(stream, color.b, endianness=endianness)
+
+    def average_luminosity(self, delta=1e-10):
+        cumsum = 0.0
+        for pix in self.pixels:
+            cumsum += math.log10(delta + pix.luminosity())
+
+        return math.pow(10, cumsum / len(self.pixels))
+
+    def normalize_image(self, factor, luminosity=None):
+        if not luminosity:
+            luminosity = self.average_luminosity()
+
+        for i in range(len(self.pixels)):
+            self.pixels[i] = self.pixels[i] * (factor / luminosity)
+
+    def clamp_image(self):
+        for i in range(len(self.pixels)):
+            self.pixels[i].r = _clamp(self.pixels[i].r)
+            self.pixels[i].g = _clamp(self.pixels[i].g)
+            self.pixels[i].b = _clamp(self.pixels[i].b)
+
+    def write_ldr_image(self, stream, format, factor, normalize=True, luminosity=None, gamma=1.0):
+        if normalize:
+            self.normalize_image(factor=factor, luminosity=luminosity)
+
+        self.clamp_image()
+
+        from PIL import Image
+        img = Image.new("RGB", (self.width, self.height))
+
+        for y in range(self.height):
+            for x in range(self.width):
+                cur_color = self.get_pixel(x, y)
+                img.putpixel(xy=(x, y), value=(
+                        int(255 * math.pow(cur_color.r, 1 / gamma)),
+                        int(255 * math.pow(cur_color.g, 1 / gamma)),
+                        int(255 * math.pow(cur_color.b, 1 / gamma)),
+                ))
+
+        img.save(stream, format=format)
 
 
 class InvalidPfmFileFormat(Exception):
@@ -151,4 +196,3 @@ def read_pfm_image(stream):
             result.set_pixel(x, y, Color(r, g, b))
 
     return result
-

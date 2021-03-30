@@ -1,1 +1,2 @@
 pytest~=6.2
+pillow~=8.0
