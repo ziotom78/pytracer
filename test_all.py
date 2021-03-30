@@ -45,7 +45,7 @@ class TestColor(unittest.TestCase):
 
     def test_luminosity(self):
         col1 = Color(1.0, 2.0, 3.0)
-        col2 = Color(5.0, 7.0, 9.0)
+        col2 = Color(9.0, 5.0, 7.0)
 
         assert pytest.approx(2.0) == col1.luminosity()
         assert pytest.approx(7.0) == col2.luminosity()
