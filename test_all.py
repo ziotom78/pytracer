@@ -20,6 +20,7 @@ from io import BytesIO
 from colors import Color
 from hdrimages import HdrImage, InvalidPfmFileFormat, Endianness, read_pfm_image, _read_line, _parse_img_size, \
     _parse_endianness
+from geometry import Vec, Point
 import pytest
 
 
@@ -196,6 +197,18 @@ class TestHdrImage(unittest.TestCase):
             assert (cur_pixel.r >= 0) and (cur_pixel.r <= 1)
             assert (cur_pixel.g >= 0) and (cur_pixel.g <= 1)
             assert (cur_pixel.b >= 0) and (cur_pixel.b <= 1)
+
+    def test_vectors(self):
+        a = Vec(1.0, 2.0, 3.0)
+        b = Vec(4.0, 6.0, 8.0)
+        assert a.is_close(a)
+        assert not a.is_close(b)
+
+    def test_points(self):
+        a = Point(1.0, 2.0, 3.0)
+        b = Point(4.0, 6.0, 8.0)
+        assert a.is_close(a)
+        assert not a.is_close(b)
 
 if __name__ == '__main__':
     unittest.main()
