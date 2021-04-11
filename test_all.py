@@ -1,8 +1,26 @@
+# The MIT License (MIT)
+#
+# Copyright © 2021 Maurizio Tomasi
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+# documentation files (the “Software”), to deal in the Software without restriction, including without limitation the
+# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
+# and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all copies or substantial portions of
+# the Software. THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT
+# LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+# SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+# CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
+
+
 import unittest
 from io import BytesIO
 from colors import Color
 from hdrimages import HdrImage, InvalidPfmFileFormat, Endianness, read_pfm_image, _read_line, _parse_img_size, \
     _parse_endianness
+from geometry import Vec, Point
 import pytest
 
 
@@ -25,6 +43,13 @@ class TestColor(unittest.TestCase):
 
         prod_col = Color(1.0, 2.0, 3.0) * 2.0
         assert prod_col.is_close(Color(2.0, 4.0, 6.0))
+
+    def test_luminosity(self):
+        col1 = Color(1.0, 2.0, 3.0)
+        col2 = Color(9.0, 5.0, 7.0)
+
+        assert pytest.approx(2.0) == col1.luminosity()
+        assert pytest.approx(7.0) == col2.luminosity()
 
 
 # This is the content of "reference_le.pfm" (little-endian file)
@@ -140,6 +165,72 @@ class TestHdrImage(unittest.TestCase):
         buf = BytesIO(b"PF\n3 2\n-1.0\nstop")
         with pytest.raises(InvalidPfmFileFormat):
             _ = read_pfm_image(buf)
+
+    def test_average_luminosity(self):
+        img = HdrImage(2, 1)
+
+        img.set_pixel(0, 0, Color(0.5e1, 1.0e1, 1.5e1))
+        img.set_pixel(1, 0, Color(0.5e3, 1.0e3, 1.5e3))
+
+        print(img.average_luminosity(delta=0.0))
+        assert pytest.approx(100.0) == img.average_luminosity(delta=0.0)
+
+    def test_normalize_image(self):
+        img = HdrImage(2, 1)
+
+        img.set_pixel(0, 0, Color(0.5e1, 1.0e1, 1.5e1))
+        img.set_pixel(1, 0, Color(0.5e3, 1.0e3, 1.5e3))
+
+        img.normalize_image(factor=1000.0, luminosity=100.0)
+        assert img.get_pixel(0, 0).is_close(Color(0.5e2, 1.0e2, 1.5e2))
+        assert img.get_pixel(1, 0).is_close(Color(0.5e4, 1.0e4, 1.5e4))
+
+    def test_clamp_image(self):
+        img = HdrImage(2, 1)
+
+        img.set_pixel(0, 0, Color(0.5e1, 1.0e1, 1.5e1))
+        img.set_pixel(1, 0, Color(0.5e3, 1.0e3, 1.5e3))
+
+        img.clamp_image()
+
+        for cur_pixel in img.pixels:
+            assert (cur_pixel.r >= 0) and (cur_pixel.r <= 1)
+            assert (cur_pixel.g >= 0) and (cur_pixel.g <= 1)
+            assert (cur_pixel.b >= 0) and (cur_pixel.b <= 1)
+
+
+class TestGeometry(unittest.TestCase):
+    def test_vectors(self):
+        a = Vec(1.0, 2.0, 3.0)
+        b = Vec(4.0, 6.0, 8.0)
+        assert a.is_close(a)
+        assert not a.is_close(b)
+
+    def test_vector_operations(self):
+        a = Vec(1.0, 2.0, 3.0)
+        b = Vec(4.0, 6.0, 8.0)
+        assert (a + b).is_close(Vec(5.0, 8.0, 11.0))
+        assert (b - a).is_close(Vec(3.0, 4.0, 5.0))
+        assert (a * 2).is_close(Vec(2.0, 4.0, 6.0))
+        assert pytest.approx(40.0) == a.dot(b)
+        assert a.cross(b).is_close(Vec(-2.0, 4.0, -2.0))
+        assert b.cross(a).is_close(Vec(2.0, -4.0, 2.0))
+        assert pytest.approx(14.0) == a.squared_norm()
+        assert pytest.approx(14.0) == a.norm() ** 2
+
+    def test_points(self):
+        a = Point(1.0, 2.0, 3.0)
+        b = Point(4.0, 6.0, 8.0)
+        assert a.is_close(a)
+        assert not a.is_close(b)
+
+    def test_point_operations(self):
+        a = Point(1.0, 2.0, 3.0)
+        b = Point(4.0, 6.0, 8.0)
+        assert (a * 2).is_close(Point(2.0, 4.0, 6.0))
+        assert (a + b).is_close(Point(5.0, 8.0, 11.0))
+        assert (b - a).is_close(Vec(3.0, 4.0, 5.0))
+
 
 if __name__ == '__main__':
     unittest.main()
