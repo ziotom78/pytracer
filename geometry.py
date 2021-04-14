@@ -36,10 +36,18 @@ class Vec:
         return _are_xyz_close(self, other)
 
     def __add__(self, other):
-        return _add_xyz(self, other, Vec)
+        if isinstance(other, Vec):
+            return _add_xyz(self, other, Vec)
+        elif isinstance(other, Point):
+            return _add_xyz(self, other, Point)
+        else:
+            raise TypeError(f"Unable to run Vec.__add__ on a {type(self)} and a {type(other)}.")
 
     def __sub__(self, other):
-        return _sub_xyz(self, other, Vec)
+        if isinstance(other, Vec):
+            return _sub_xyz(self, other, Vec)
+        else:
+            raise TypeError(f"Unable to run Vec.__sub__ on a {type(self)} and a {type(other)}.")
 
     def __mul__(self, scalar):
         return _mul_scalar_xyz(scalar=scalar, xyz=self, return_type=Vec)
@@ -75,10 +83,18 @@ class Point:
         return _are_xyz_close(self, other)
 
     def __add__(self, other):
-        return _add_xyz(self, other, Point)
+        if isinstance(other, Vec):
+            return _add_xyz(self, other, Point)
+        else:
+            raise TypeError(f"Unable to run Point.__add__ on a {type(self)} and a {type(other)}.")
 
     def __sub__(self, other):
-        return _sub_xyz(self, other, Vec)
+        if isinstance(other, Vec):
+            return _sub_xyz(self, other, Point)
+        elif isinstance(other, Point):
+            return _sub_xyz(self, other, Vec)
+        else:
+            raise TypeError(f"Unable to run __sub__ on a {type(self)} and a {type(other)}.")
 
     def __mul__(self, scalar):
         return _mul_scalar_xyz(scalar=scalar, xyz=self, return_type=Point)

@@ -225,11 +225,13 @@ class TestGeometry(unittest.TestCase):
         assert not a.is_close(b)
 
     def test_point_operations(self):
-        a = Point(1.0, 2.0, 3.0)
-        b = Point(4.0, 6.0, 8.0)
-        assert (a * 2).is_close(Point(2.0, 4.0, 6.0))
-        assert (a + b).is_close(Point(5.0, 8.0, 11.0))
-        assert (b - a).is_close(Vec(3.0, 4.0, 5.0))
+        p1 = Point(1.0, 2.0, 3.0)
+        v = Vec(4.0, 6.0, 8.0)
+        p2 = Point(4.0, 6.0, 8.0)
+        assert (p1 * 2).is_close(Point(2.0, 4.0, 6.0))
+        assert (p1 + v).is_close(Point(5.0, 8.0, 11.0))
+        assert (p2 - p1).is_close(Vec(3.0, 4.0, 5.0))
+        assert (p1 - v).is_close(Point(-3.0, -4.0, -5.0))
 
 
 if __name__ == '__main__':
