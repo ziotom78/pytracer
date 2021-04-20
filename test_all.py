@@ -40,12 +40,12 @@ class TestColor(unittest.TestCase):
         col1 = Color(1.0, 2.0, 3.0)
         col2 = Color(5.0, 7.0, 9.0)
 
-        assert (col1 + col2)._are_matr_close(Color(6.0, 9.0, 12.0))
-        assert (col1 - col2)._are_matr_close(Color(-4.0, -5.0, -6.0))
-        assert (col1 * col2)._are_matr_close(Color(5.0, 14.0, 27.0))
+        assert (col1 + col2).is_close(Color(6.0, 9.0, 12.0))
+        assert (col1 - col2).is_close(Color(-4.0, -5.0, -6.0))
+        assert (col1 * col2).is_close(Color(5.0, 14.0, 27.0))
 
         prod_col = Color(1.0, 2.0, 3.0) * 2.0
-        assert prod_col._are_matr_close(Color(2.0, 4.0, 6.0))
+        assert prod_col.is_close(Color(2.0, 4.0, 6.0))
 
     def test_luminosity(self):
         col1 = Color(1.0, 2.0, 3.0)
@@ -156,13 +156,13 @@ class TestHdrImage(unittest.TestCase):
             assert img.width == 3
             assert img.height == 2
 
-            assert img.get_pixel(0, 0)._are_matr_close(Color(1.0e1, 2.0e1, 3.0e1))
-            assert img.get_pixel(1, 0)._are_matr_close(Color(4.0e1, 5.0e1, 6.0e1))
-            assert img.get_pixel(2, 0)._are_matr_close(Color(7.0e1, 8.0e1, 9.0e1))
-            assert img.get_pixel(0, 1)._are_matr_close(Color(1.0e2, 2.0e2, 3.0e2))
-            assert img.get_pixel(0, 0)._are_matr_close(Color(1.0e1, 2.0e1, 3.0e1))
-            assert img.get_pixel(1, 1)._are_matr_close(Color(4.0e2, 5.0e2, 6.0e2))
-            assert img.get_pixel(2, 1)._are_matr_close(Color(7.0e2, 8.0e2, 9.0e2))
+            assert img.get_pixel(0, 0).is_close(Color(1.0e1, 2.0e1, 3.0e1))
+            assert img.get_pixel(1, 0).is_close(Color(4.0e1, 5.0e1, 6.0e1))
+            assert img.get_pixel(2, 0).is_close(Color(7.0e1, 8.0e1, 9.0e1))
+            assert img.get_pixel(0, 1).is_close(Color(1.0e2, 2.0e2, 3.0e2))
+            assert img.get_pixel(0, 0).is_close(Color(1.0e1, 2.0e1, 3.0e1))
+            assert img.get_pixel(1, 1).is_close(Color(4.0e2, 5.0e2, 6.0e2))
+            assert img.get_pixel(2, 1).is_close(Color(7.0e2, 8.0e2, 9.0e2))
 
     def test_pfm_read_wrong(self):
         buf = BytesIO(b"PF\n3 2\n-1.0\nstop")
@@ -185,8 +185,8 @@ class TestHdrImage(unittest.TestCase):
         img.set_pixel(1, 0, Color(0.5e3, 1.0e3, 1.5e3))
 
         img.normalize_image(factor=1000.0, luminosity=100.0)
-        assert img.get_pixel(0, 0)._are_matr_close(Color(0.5e2, 1.0e2, 1.5e2))
-        assert img.get_pixel(1, 0)._are_matr_close(Color(0.5e4, 1.0e4, 1.5e4))
+        assert img.get_pixel(0, 0).is_close(Color(0.5e2, 1.0e2, 1.5e2))
+        assert img.get_pixel(1, 0).is_close(Color(0.5e4, 1.0e4, 1.5e4))
 
     def test_clamp_image(self):
         img = HdrImage(2, 1)
@@ -212,13 +212,13 @@ class TestGeometry(unittest.TestCase):
     def test_vector_operations(self):
         a = Vec(1.0, 2.0, 3.0)
         b = Vec(4.0, 6.0, 8.0)
-        assert (-a)._are_matr_close(Vec(-1.0, -2.0, -3.0))
-        assert (a + b)._are_matr_close(Vec(5.0, 8.0, 11.0))
-        assert (b - a)._are_matr_close(Vec(3.0, 4.0, 5.0))
-        assert (a * 2)._are_matr_close(Vec(2.0, 4.0, 6.0))
+        assert (-a).is_close(Vec(-1.0, -2.0, -3.0))
+        assert (a + b).is_close(Vec(5.0, 8.0, 11.0))
+        assert (b - a).is_close(Vec(3.0, 4.0, 5.0))
+        assert (a * 2).is_close(Vec(2.0, 4.0, 6.0))
         assert pytest.approx(40.0) == a.dot(b)
-        assert a.cross(b)._are_matr_close(Vec(-2.0, 4.0, -2.0))
-        assert b.cross(a)._are_matr_close(Vec(2.0, -4.0, 2.0))
+        assert a.cross(b).is_close(Vec(-2.0, 4.0, -2.0))
+        assert b.cross(a).is_close(Vec(2.0, -4.0, 2.0))
         assert pytest.approx(14.0) == a.squared_norm()
         assert pytest.approx(14.0) == a.norm() ** 2
 
@@ -232,10 +232,10 @@ class TestGeometry(unittest.TestCase):
         p1 = Point(1.0, 2.0, 3.0)
         v = Vec(4.0, 6.0, 8.0)
         p2 = Point(4.0, 6.0, 8.0)
-        assert (p1 * 2)._are_matr_close(Point(2.0, 4.0, 6.0))
-        assert (p1 + v)._are_matr_close(Point(5.0, 8.0, 11.0))
-        assert (p2 - p1)._are_matr_close(Vec(3.0, 4.0, 5.0))
-        assert (p1 - v)._are_matr_close(Point(-3.0, -4.0, -5.0))
+        assert (p1 * 2).is_close(Point(2.0, 4.0, 6.0))
+        assert (p1 + v).is_close(Point(5.0, 8.0, 11.0))
+        assert (p2 - p1).is_close(Vec(3.0, 4.0, 5.0))
+        assert (p1 - v).is_close(Point(-3.0, -4.0, -5.0))
 
 
 class TestTransformations(unittest.TestCase):
