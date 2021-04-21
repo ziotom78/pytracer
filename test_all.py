@@ -256,11 +256,11 @@ class TestTransformations(unittest.TestCase):
         assert m1.is_close(m2)
 
         m3 = Transformation(m=deepcopy(m1.m), invm=deepcopy(m1.invm))
-        m3.m[2][2] += 1.0
+        m3.m[2][2] += 1.0   # Note: this makes "m3" not consistent (m3.is_consistent() == False)
         assert not m1.is_close(m3)
 
         m4 = Transformation(m=deepcopy(m1.m), invm=deepcopy(m1.invm))
-        m4.invm[2][2] += 1.0
+        m4.invm[2][2] += 1.0   # Note: this makes "m4" not consistent (m4.is_consistent() == False)
         assert not m1.is_close(m4)
 
     def test_multiplication(self):
@@ -272,6 +272,8 @@ class TestTransformations(unittest.TestCase):
                                   [4.375, -3.875, 2.0, -0.5],
                                   [0.5, 0.5, -1.0, 1.0],
                                   [-1.375, 0.875, 0.0, -0.5]])
+        assert m1.is_consistent()
+
         m2 = Transformation(m=[[3.0, 5.0, 2.0, 4.0],
                                [4.0, 1.0, 0.0, 5.0],
                                [6.0, 3.0, 2.0, 0.0],
@@ -280,6 +282,7 @@ class TestTransformations(unittest.TestCase):
                                   [2.9, -1.7, 0.2, -3.1],
                                   [-5.55, 3.15, -0.4, 6.45],
                                   [-0.9, 0.7, -0.2, 1.1]])
+        assert m2.is_consistent()
 
         expected = Transformation(
             m=[[33.0, 32.0, 16.0, 18.0],
@@ -291,6 +294,7 @@ class TestTransformations(unittest.TestCase):
                   [25.525, -22.025, 12.25, -5.2],
                   [4.825, -4.325, 2.5, -1.1]],
         )
+        assert expected.is_consistent()
 
         assert expected.is_close(m1 * m2)
 
@@ -303,6 +307,7 @@ class TestTransformations(unittest.TestCase):
                                  [5.75, -4.75, 2.0, 1.0],
                                  [-2.25, 2.25, -1.0, -2.0],
                                  [0.0, 0.0, 0.0, 1.0]])
+        assert m.is_consistent()
 
         expected_v = Vec(14.0, 38.0, 51.0)
         assert expected_v.is_close(m * Vec(1.0, 2.0, 3.0))
@@ -324,26 +329,40 @@ class TestTransformations(unittest.TestCase):
                                   [-1.375, 0.875, 0.0, -0.5]])
 
         m2 = m1.inverse()
+        assert m2.is_consistent()
 
         prod = m1 * m2
+        assert prod.is_consistent()
         assert prod.is_close(Transformation())
 
     def test_translations(self):
         tr1 = translation(Vec(1.0, 2.0, 3.0))
+        assert tr1.is_consistent()
+
         tr2 = translation(Vec(4.0, 6.0, 8.0))
+        assert tr1.is_consistent()
+
         prod = tr1 * tr2
+        assert prod.is_consistent()
 
         expected = translation(Vec(5.0, 8.0, 11.0))
         assert prod.is_close(expected)
 
     def test_rotations(self):
+        assert rotation_x(0.1).is_consistent()
+        assert rotation_y(0.1).is_consistent()
+        assert rotation_z(0.1).is_consistent()
+
         assert (rotation_x(angle_rad=pi / 2) * VEC_Y).is_close(VEC_Z)
         assert (rotation_y(angle_rad=pi / 2) * VEC_Z).is_close(VEC_X)
         assert (rotation_z(angle_rad=pi / 2) * VEC_X).is_close(VEC_Y)
 
     def test_scalings(self):
         tr1 = scaling(Vec(2.0, 5.0, 10.0))
+        assert tr1.is_consistent()
+
         tr2 = scaling(Vec(3.0, 2.0, 4.0))
+        assert tr2.is_consistent()
 
         expected = scaling(Vec(6.0, 10.0, 40.0))
         assert expected.is_close(tr1 * tr2)
