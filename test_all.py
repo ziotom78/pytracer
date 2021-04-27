@@ -25,6 +25,7 @@ from hdrimages import HdrImage, InvalidPfmFileFormat, Endianness, read_pfm_image
 from geometry import Vec, Point, Normal, VEC_X, VEC_Y, VEC_Z
 from transformations import Transformation, _matr_prod, translation, scaling, rotation_x, rotation_y, rotation_z
 from camera import OrthogonalCamera, PerspectiveCamera
+from imagetracer import ImageTracer
 
 import pytest
 
@@ -398,6 +399,24 @@ class TestCameras(unittest.TestCase):
 
         ray = cam.fire_ray(0.5, 0.5)
         assert ray.at(1.0).is_close(Point(0.0, -2.0, 0.0))
+
+
+class TestImageTracer(unittest.TestCase):
+    def test_image_tracer(self):
+        image = HdrImage(width=4, height=2)
+        camera = PerspectiveCamera(aspect_ratio=2)
+        tracer = ImageTracer(image=image, camera=camera)
+
+        # Here we're cheating: we are asking `ImageTracer.fire_ray` to fire one ray *outside*
+        # the pixel we're specifying
+        ray1 = tracer.fire_ray(0, 0, u_pixel=2.5, v_pixel=1.5)
+        ray2 = tracer.fire_ray(2, 1, u_pixel=0.5, v_pixel=0.5)
+        assert ray1.is_close(ray2)
+
+        tracer.fire_all_rays(lambda ray: Color(1.0, 2.0, 3.0))
+        for row in range(image.height):
+            for col in range(image.width):
+                assert image.get_pixel(col, row) == Color(1.0, 2.0, 3.0)
 
 
 if __name__ == '__main__':
