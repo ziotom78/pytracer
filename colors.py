@@ -16,19 +16,22 @@
 
 
 from dataclasses import dataclass
-
-
-def are_close(num1, num2, epsilon=1e-6):
-    return abs(num1 - num2) < epsilon
+from misc import are_close
 
 
 @dataclass
 class Color:
+    """
+    A RGB color
+
+    The class has three floating-point members: `r` (red), `g` (green), and `b` (blue).
+    """
     r: float = 0.0
     g: float = 0.0
     b: float = 0.0
 
     def __add__(self, other):
+        """Sum two colors"""
         return Color(
             self.r + other.r,
             self.g + other.g,
@@ -36,6 +39,7 @@ class Color:
         )
 
     def __sub__(self, other):
+        """Subtract two colors"""
         return Color(
             self.r - other.r,
             self.g - other.g,
@@ -43,6 +47,7 @@ class Color:
         )
 
     def __mul__(self, other):
+        """Multiply two colors, or one color with one number"""
         try:
             # Try a color-times-color operation
             return Color(
@@ -59,9 +64,11 @@ class Color:
             )
 
     def luminosity(self):
+        """Return a rough measure of the luminosity associated with the color"""
         return (max(self.r, self.g, self.b) + min(self.r, self.g, self.b)) / 2
 
     def is_close(self, other, epsilon=1e-6):
+        """Return True if the three RGB components of two colors are close by less than `epsilon`"""
         return (are_close(self.r, other.r, epsilon=epsilon) and
                 are_close(self.g, other.g, epsilon=epsilon) and
                 are_close(self.b, other.b, epsilon=epsilon))

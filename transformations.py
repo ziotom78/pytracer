@@ -42,6 +42,11 @@ IDENTITY_MATR4x4 = [[1.0, 0.0, 0.0, 0.0],
 
 
 class Transformation:
+    """An affine transformation.
+
+    This class encodes an affine transformation. It has been designed with the aim of making the calculation
+    of the inverse transformation particularly efficient.
+    """
     def __init__(self, m=IDENTITY_MATR4x4, invm=IDENTITY_MATR4x4):
         self.m = m
         self.invm = invm
@@ -76,6 +81,9 @@ class Transformation:
             raise TypeError(f"Invalid type {type(other)} multiplied to a Transformation object")
 
     def is_consistent(self):
+        """Check the internal consistency of the transformation.
+
+        This method is useful when writing tests."""
         prod = _matr_prod(self.m, self.invm)
         return _are_matr_close(prod, IDENTITY_MATR4x4)
 
@@ -91,13 +99,20 @@ class Transformation:
         return result
 
     def is_close(self, other):
+        """Check if `other` represents the same transform."""
         return _are_matr_close(self.m, other.m) and _are_matr_close(self.invm, other.invm)
 
     def inverse(self):
+        """Return a `Transformation` object representing the inverse affine transformation.
+
+        This method is very cheap to call."""
         return Transformation(m=self.invm, invm=self.m)
 
 
 def translation(vec):
+    """Return a :class:`.Transformation` object encoding a rigid translation
+
+    The parameter `vec` specifies the amount of shift to be applied along the three axes."""
     return Transformation(
         m=[[1.0, 0.0, 0.0, vec.x],
            [0.0, 1.0, 0.0, vec.y],
@@ -111,6 +126,9 @@ def translation(vec):
 
 
 def scaling(vec):
+    """Return a :class:`.Transformation` object encoding a scaling
+
+    The parameter `vec` specifies the amount of scaling along the three directions X, Y, Z."""
     return Transformation(
         m=[[vec.x, 0.0, 0.0, 0.0],
            [0.0, vec.y, 0.0, 0.0],
@@ -124,6 +142,11 @@ def scaling(vec):
 
 
 def rotation_x(angle_deg: float):
+    """Return a :class:`.Transformation` object encoding a rotation around the X axis
+
+    The parameter `angle_deg` specifies the rotation angle (in degrees). The positive sign is
+    given by the right-hand rule."""
+
     sinang, cosang = sin(radians(angle_deg)), cos(radians(angle_deg))
     return Transformation(
         m=[[1.0, 0.0, 0.0, 0.0],
@@ -138,6 +161,10 @@ def rotation_x(angle_deg: float):
 
 
 def rotation_y(angle_deg: float):
+    """Return a :class:`.Transformation` object encoding a rotation around the Y axis
+
+    The parameter `angle_deg` specifies the rotation angle (in degrees). The positive sign is
+    given by the right-hand rule."""
     sinang, cosang = sin(radians(angle_deg)), cos(radians(angle_deg))
     return Transformation(
         m=[[cosang, 0.0, sinang, 0.0],
@@ -152,6 +179,10 @@ def rotation_y(angle_deg: float):
 
 
 def rotation_z(angle_deg: float):
+    """Return a :class:`.Transformation` object encoding a rotation around the Z axis
+
+    The parameter `angle_deg` specifies the rotation angle (in degrees). The positive sign is
+    given by the right-hand rule."""
     sinang, cosang = sin(radians(angle_deg)), cos(radians(angle_deg))
     return Transformation(
         m=[[cosang, -sinang, 0.0, 0.0],
