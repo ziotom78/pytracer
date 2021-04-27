@@ -15,7 +15,7 @@
 # IN THE SOFTWARE.
 
 from copy import deepcopy
-from math import pi, sin, cos
+from math import pi
 
 import unittest
 from io import BytesIO
@@ -24,6 +24,8 @@ from hdrimages import HdrImage, InvalidPfmFileFormat, Endianness, read_pfm_image
     _parse_endianness
 from geometry import Vec, Point, Normal, VEC_X, VEC_Y, VEC_Z
 from transformations import Transformation, _matr_prod, translation, scaling, rotation_x, rotation_y, rotation_z
+from camera import OrthogonalCamera, PerspectiveCamera
+
 import pytest
 
 
@@ -256,11 +258,11 @@ class TestTransformations(unittest.TestCase):
         assert m1.is_close(m2)
 
         m3 = Transformation(m=deepcopy(m1.m), invm=deepcopy(m1.invm))
-        m3.m[2][2] += 1.0   # Note: this makes "m3" not consistent (m3.is_consistent() == False)
+        m3.m[2][2] += 1.0  # Note: this makes "m3" not consistent (m3.is_consistent() == False)
         assert not m1.is_close(m3)
 
         m4 = Transformation(m=deepcopy(m1.m), invm=deepcopy(m1.invm))
-        m4.invm[2][2] += 1.0   # Note: this makes "m4" not consistent (m4.is_consistent() == False)
+        m4.invm[2][2] += 1.0  # Note: this makes "m4" not consistent (m4.is_consistent() == False)
         assert not m1.is_close(m4)
 
     def test_multiplication(self):
@@ -366,6 +368,36 @@ class TestTransformations(unittest.TestCase):
 
         expected = scaling(Vec(6.0, 10.0, 40.0))
         assert expected.is_close(tr1 * tr2)
+
+
+class TestCameras(unittest.TestCase):
+    def test_orthogonal_camera(self):
+        cam = OrthogonalCamera(aspect_ratio=2.0)
+
+        assert cam.fire_ray(0.0, 0.0).at(1.0).is_close(Point(0.0, 2.0, -1.0))
+        assert cam.fire_ray(1.0, 0.0).at(1.0).is_close(Point(0.0, -2.0, -1.0))
+        assert cam.fire_ray(0.0, 1.0).at(1.0).is_close(Point(0.0, 2.0, 1.0))
+        assert cam.fire_ray(1.0, 1.0).at(1.0).is_close(Point(0.0, -2.0, 1.0))
+
+    def test_orthogonal_camera_transform(self):
+        cam = OrthogonalCamera(transformation=translation(-VEC_Y * 2.0) * rotation_z(angle_deg=90))
+
+        ray = cam.fire_ray(0.5, 0.5)
+        assert ray.at(1.0).is_close(Point(0.0, -2.0, 0.0))
+
+    def test_perspective_camera(self):
+        cam = PerspectiveCamera(screen_distance=1.0, aspect_ratio=2.0)
+
+        assert cam.fire_ray(0.0, 0.0).at(1.0).is_close(Point(0.0, 2.0, -1.0))
+        assert cam.fire_ray(1.0, 0.0).at(1.0).is_close(Point(0.0, -2.0, -1.0))
+        assert cam.fire_ray(0.0, 1.0).at(1.0).is_close(Point(0.0, 2.0, 1.0))
+        assert cam.fire_ray(1.0, 1.0).at(1.0).is_close(Point(0.0, -2.0, 1.0))
+
+    def test_perspective_camera_transform(self):
+        cam = PerspectiveCamera(transformation=translation(-VEC_Y * 2.0) * rotation_z(pi / 2.0))
+
+        ray = cam.fire_ray(0.5, 0.5)
+        assert ray.at(1.0).is_close(Point(0.0, -2.0, 0.0))
 
 
 if __name__ == '__main__':
