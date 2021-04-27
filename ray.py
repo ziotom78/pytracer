@@ -24,16 +24,13 @@ class Ray:
     origin: Point = Point()
     dir: Vec = Vec()
     tmin: float = 1e-5
-    tmax: float = 1e+10
+    tmax: float = inf
     depth: int = 0
 
     def is_close(self, other: Ray, epsilon=1e-5):
-        """Check if two rays are similar enough to be consuidered equal"""
+        """Check if two rays are similar enough to be considered equal"""
         return (self.origin.is_close(other.origin, epsilon=epsilon) and
-                self.dir.is_close(other.dir, epsilon=epsilon) and
-                are_close(self.tmin, other.tmin) and
-                are_close(self.tmax, other.tmax) and
-                (self.depth == other.depth))
+                self.dir.is_close(other.dir, epsilon=epsilon))
 
     def at(self, t):
         """Compute the point along the ray's path at some distance from the origin
