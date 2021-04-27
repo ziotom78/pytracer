@@ -21,10 +21,12 @@ from dataclasses import dataclass
 from misc import are_close
 
 
-def _are_xyz_close(a, b):
+def _are_xyz_close(a, b, epsilon=1e-5):
     # This works thanks to Python's duck typing. In C++ and other languages
     # you should probably rely on function templates or something like
-    return are_close(a.x, b.x) and are_close(a.y, b.y) and are_close(a.z, b.z)
+    return (are_close(a.x, b.x, epsilon=epsilon) and
+            are_close(a.y, b.y, epsilon=epsilon) and
+            are_close(a.z, b.z, epsilon=epsilon))
 
 
 def _add_xyz(a, b, return_type):
@@ -62,10 +64,10 @@ class Vec:
     y: float = 0.0
     z: float = 0.0
 
-    def is_close(self, other):
+    def is_close(self, other, epsilon=1e-5):
         """Return True if the object and 'other' have roughly the same direction and orientation"""
         assert isinstance(other, Vec)
-        return _are_xyz_close(self, other)
+        return _are_xyz_close(self, other, epsilon=epsilon)
 
     def __add__(self, other):
         """Sum two vectors, or one vector and one point"""
@@ -132,10 +134,10 @@ class Point:
     y: float = 0.0
     z: float = 0.0
 
-    def is_close(self, other):
+    def is_close(self, other, epsilon=1e-5):
         """Return True if the object and 'other' have roughly the same position"""
         assert isinstance(other, Point)
-        return _are_xyz_close(self, other)
+        return _are_xyz_close(self, other, epsilon=epsilon)
 
     def __add__(self, other):
         """Sum a point and a vector"""
@@ -171,10 +173,10 @@ class Normal:
     y: float = 0.0
     z: float = 0.0
 
-    def is_close(self, other):
+    def is_close(self, other, epsilon=1e-5):
         """Return True if the object and 'other' have roughly the same direction and orientation"""
         assert isinstance(other, Normal)
-        return _are_xyz_close(self, other)
+        return _are_xyz_close(self, other, epsilon=epsilon)
 
 
 VEC_X = Vec(1.0, 0.0, 0.0)
