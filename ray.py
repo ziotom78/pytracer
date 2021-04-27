@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import inf
 
 from geometry import Point, Vec
 from transformations import Transformation
