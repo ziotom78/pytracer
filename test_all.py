@@ -25,7 +25,9 @@ from hdrimages import HdrImage, InvalidPfmFileFormat, Endianness, read_pfm_image
 from geometry import Vec, Point, Normal, VEC_X, VEC_Y, VEC_Z
 from transformations import Transformation, _matr_prod, translation, scaling, rotation_x, rotation_y, rotation_z
 from camera import OrthogonalCamera, PerspectiveCamera
+from ray import Ray
 from imagetracer import ImageTracer
+from misc import are_close
 
 import pytest
 
@@ -371,14 +373,49 @@ class TestTransformations(unittest.TestCase):
         assert expected.is_close(tr1 * tr2)
 
 
+class TestRays(unittest.TestCase):
+    def test_is_close(self):
+        ray1 = Ray(origin=Point(1.0, 2.0, 3.0), dir=Vec(5.0, 4.0, -1.0))
+        ray2 = Ray(origin=Point(1.0, 2.0, 3.0), dir=Vec(5.0, 4.0, -1.0))
+        ray3 = Ray(origin=Point(5.0, 1.0, 4.0), dir=Vec(3.0, 9.0, 4.0))
+
+        assert ray1.is_close(ray2)
+        assert not ray1.is_close(ray3)
+
+    def test_at(self):
+        ray = Ray(origin=Point(1.0, 2.0, 4.0), dir=Vec(4.0, 2.0, 1.0))
+        assert ray.at(0.0).is_close(ray.origin)
+        assert ray.at(1.0).is_close(Point(5.0, 4.0, 5.0))
+        assert ray.at(2.0).is_close(Point(9.0, 6.0, 6.0))
+
+    def test_transform(self):
+        ray = Ray(origin=Point(1.0, 2.0, 3.0), dir=Vec(6.0, 5.0, 4.0))
+        transformation = translation(Vec(10.0, 11.0, 12.0)) * rotation_x(90.0)
+        transformed = ray.transform(transformation)
+        assert transformed.origin.is_close(Point(11.0, 8.0, 14.0))
+        assert transformed.dir.is_close(Vec(6.0, -4.0, 5.0))
+
+
 class TestCameras(unittest.TestCase):
     def test_orthogonal_camera(self):
         cam = OrthogonalCamera(aspect_ratio=2.0)
 
-        assert cam.fire_ray(0.0, 0.0).at(1.0).is_close(Point(0.0, 2.0, -1.0))
-        assert cam.fire_ray(1.0, 0.0).at(1.0).is_close(Point(0.0, -2.0, -1.0))
-        assert cam.fire_ray(0.0, 1.0).at(1.0).is_close(Point(0.0, 2.0, 1.0))
-        assert cam.fire_ray(1.0, 1.0).at(1.0).is_close(Point(0.0, -2.0, 1.0))
+        # Fire one ray for each corner of the image plane
+        ray1 = cam.fire_ray(0.0, 0.0)
+        ray2 = cam.fire_ray(1.0, 0.0)
+        ray3 = cam.fire_ray(0.0, 1.0)
+        ray4 = cam.fire_ray(1.0, 1.0)
+
+        # Verify that all the rays are parallel by verifying that cross-products vanish
+        assert are_close(0.0, ray1.dir.cross(ray2.dir).squared_norm())
+        assert are_close(0.0, ray1.dir.cross(ray3.dir).squared_norm())
+        assert are_close(0.0, ray1.dir.cross(ray4.dir).squared_norm())
+
+        # Verify that the ray hitting the corners have the right coordinates
+        assert ray1.at(1.0).is_close(Point(0.0, 2.0, -1.0))
+        assert ray2.at(1.0).is_close(Point(0.0, -2.0, -1.0))
+        assert ray3.at(1.0).is_close(Point(0.0, 2.0, 1.0))
+        assert ray4.at(1.0).is_close(Point(0.0, -2.0, 1.0))
 
     def test_orthogonal_camera_transform(self):
         cam = OrthogonalCamera(transformation=translation(-VEC_Y * 2.0) * rotation_z(angle_deg=90))
@@ -389,10 +426,22 @@ class TestCameras(unittest.TestCase):
     def test_perspective_camera(self):
         cam = PerspectiveCamera(screen_distance=1.0, aspect_ratio=2.0)
 
-        assert cam.fire_ray(0.0, 0.0).at(1.0).is_close(Point(0.0, 2.0, -1.0))
-        assert cam.fire_ray(1.0, 0.0).at(1.0).is_close(Point(0.0, -2.0, -1.0))
-        assert cam.fire_ray(0.0, 1.0).at(1.0).is_close(Point(0.0, 2.0, 1.0))
-        assert cam.fire_ray(1.0, 1.0).at(1.0).is_close(Point(0.0, -2.0, 1.0))
+        # Fire one ray for each corner of the image plane
+        ray1 = cam.fire_ray(0.0, 0.0)
+        ray2 = cam.fire_ray(1.0, 0.0)
+        ray3 = cam.fire_ray(0.0, 1.0)
+        ray4 = cam.fire_ray(1.0, 1.0)
+
+        # Verify that all the rays depart from the same point
+        assert ray1.origin.is_close(ray2.origin)
+        assert ray1.origin.is_close(ray3.origin)
+        assert ray1.origin.is_close(ray4.origin)
+
+        # Verify that the ray hitting the corners have the right coordinates
+        assert ray1.at(1.0).is_close(Point(0.0, 2.0, -1.0))
+        assert ray2.at(1.0).is_close(Point(0.0, -2.0, -1.0))
+        assert ray3.at(1.0).is_close(Point(0.0, 2.0, 1.0))
+        assert ray4.at(1.0).is_close(Point(0.0, -2.0, 1.0))
 
     def test_perspective_camera_transform(self):
         cam = PerspectiveCamera(transformation=translation(-VEC_Y * 2.0) * rotation_z(pi / 2.0))
