@@ -353,9 +353,9 @@ class TestTransformations(unittest.TestCase):
         assert rotation_y(0.1).is_consistent()
         assert rotation_z(0.1).is_consistent()
 
-        assert (rotation_x(angle_rad=pi / 2) * VEC_Y).is_close(VEC_Z)
-        assert (rotation_y(angle_rad=pi / 2) * VEC_Z).is_close(VEC_X)
-        assert (rotation_z(angle_rad=pi / 2) * VEC_X).is_close(VEC_Y)
+        assert (rotation_x(angle_deg=90) * VEC_Y).is_close(VEC_Z)
+        assert (rotation_y(angle_deg=90) * VEC_Z).is_close(VEC_X)
+        assert (rotation_z(angle_deg=90) * VEC_X).is_close(VEC_Y)
 
     def test_scalings(self):
         tr1 = scaling(Vec(2.0, 5.0, 10.0))

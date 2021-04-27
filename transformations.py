@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-from math import sin, cos
+from math import sin, cos, radians
 from geometry import Vec, Point, Normal
 from colors import are_close
 
@@ -123,8 +123,8 @@ def scaling(vec):
     )
 
 
-def rotation_x(angle_rad: float):
-    sinang, cosang = sin(angle_rad), cos(angle_rad)
+def rotation_x(angle_deg: float):
+    sinang, cosang = sin(radians(angle_deg)), cos(radians(angle_deg))
     return Transformation(
         m=[[1.0, 0.0, 0.0, 0.0],
            [0.0, cosang, -sinang, 0.0],
@@ -137,8 +137,8 @@ def rotation_x(angle_rad: float):
     )
 
 
-def rotation_y(angle_rad: float):
-    sinang, cosang = sin(angle_rad), cos(angle_rad)
+def rotation_y(angle_deg: float):
+    sinang, cosang = sin(radians(angle_deg)), cos(radians(angle_deg))
     return Transformation(
         m=[[cosang, 0.0, sinang, 0.0],
            [0.0, 1.0, 0.0, 0.0],
@@ -151,8 +151,8 @@ def rotation_y(angle_rad: float):
     )
 
 
-def rotation_z(angle_rad: float):
-    sinang, cosang = sin(angle_rad), cos(angle_rad)
+def rotation_z(angle_deg: float):
+    sinang, cosang = sin(radians(angle_deg)), cos(radians(angle_deg))
     return Transformation(
         m=[[cosang, -sinang, 0.0, 0.0],
            [sinang, cosang, 0.0, 0.0],
