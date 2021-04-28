@@ -23,7 +23,6 @@ from math import inf
 
 from geometry import Point, Vec
 from transformations import Transformation
-from misc import are_close
 
 
 @dataclass
