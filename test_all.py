@@ -406,7 +406,7 @@ class TestCameras(unittest.TestCase):
         ray3 = cam.fire_ray(0.0, 1.0)
         ray4 = cam.fire_ray(1.0, 1.0)
 
-        # Verify that all the rays are parallel by verifying that cross-products vanish
+        # Verify that the rays are parallel by verifying that cross-products vanish
         assert are_close(0.0, ray1.dir.cross(ray2.dir).squared_norm())
         assert are_close(0.0, ray1.dir.cross(ray3.dir).squared_norm())
         assert are_close(0.0, ray1.dir.cross(ray4.dir).squared_norm())
