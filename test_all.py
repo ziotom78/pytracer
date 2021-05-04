@@ -27,7 +27,10 @@ from transformations import Transformation, _matr_prod, translation, scaling, ro
 from camera import OrthogonalCamera, PerspectiveCamera
 from ray import Ray
 from imagetracer import ImageTracer
+from hitrecord import HitRecord, Vec2d
+from shapes import Sphere
 from misc import are_close
+from pcg import PCG
 
 import pytest
 
@@ -476,6 +479,79 @@ class TestImageTracer(unittest.TestCase):
             for col in range(self.image.width):
                 assert self.image.get_pixel(col, row) == Color(1.0, 2.0, 3.0)
 
+
+class TestSphere(unittest.TestCase):
+    def testHit(self):
+        sphere = Sphere()
+
+        ray1 = Ray(origin=Point(0, 0, 2), dir=-VEC_Z)
+        intersection1 = sphere.ray_intersection(ray1)
+        assert intersection1
+        assert HitRecord(
+            world_point=Point(0.0, 0.0, 1.0),
+            normal=Normal(0.0, 0.0, 1.0),
+            surface_point=Vec2d(0.0, 0.0),
+            t=1.0,
+            ray=ray1
+        ).is_close(intersection1)
+
+        ray2 = Ray(origin=Point(3, 0, 0), dir=-VEC_X)
+        intersection2 = sphere.ray_intersection(ray2)
+        assert intersection2
+        assert HitRecord(
+            world_point=Point(1.0, 0.0, 0.0),
+            normal=Normal(1.0, 0.0, 0.0),
+            surface_point=Vec2d(0.0, 0.5),
+            t=2.0,
+            ray=ray2
+        ).is_close(intersection2)
+
+        assert not sphere.ray_intersection(Ray(origin=Point(0, 10, 2), dir=-VEC_Z))
+
+    def testInnerHit(self):
+        sphere = Sphere()
+
+        ray = Ray(origin=Point(0, 0, 0), dir=VEC_X)
+        intersection = sphere.ray_intersection(ray)
+        assert intersection
+        assert HitRecord(
+            world_point=Point(1.0, 0.0, 0.0),
+            normal=Normal(-1.0, 0.0, 0.0),
+            surface_point=Vec2d(0.0, 0.5),
+            t=1.0,
+            ray=ray
+        ).is_close(intersection)
+
+    def testTransformation(self):
+        sphere = Sphere(transformation=translation(Vec(10.0, 0.0, 0.0)))
+
+        ray1 = Ray(origin=Point(10, 0, 2), dir=-VEC_Z)
+        intersection1 = sphere.ray_intersection(ray1)
+        assert intersection1
+        assert HitRecord(
+            world_point=Point(10.0, 0.0, 1.0),
+            normal=Normal(0.0, 0.0, 1.0),
+            surface_point=Vec2d(0.0, 0.0),
+            t=1.0,
+            ray=ray1
+        ).is_close(intersection1)
+
+        ray2 = Ray(origin=Point(13, 0, 0), dir=-VEC_X)
+        intersection2 = sphere.ray_intersection(ray2)
+        assert intersection2
+        assert HitRecord(
+            world_point=Point(11.0, 0.0, 0.0),
+            normal=Normal(1.0, 0.0, 0.0),
+            surface_point=Vec2d(0.0, 0.5),
+            t=2.0,
+            ray=ray2
+        ).is_close(intersection2)
+
+        # Check if the sphere failed to move by trying to hit the untransformed shape
+        assert not sphere.ray_intersection(Ray(origin=Point(0, 0, 2), dir=-VEC_Z))
+
+        # Check if the *inverse* transformation was wrongly applied
+        assert not sphere.ray_intersection(Ray(origin=Point(-10, 0, 0), dir=-VEC_Z))
 
 if __name__ == '__main__':
     unittest.main()
