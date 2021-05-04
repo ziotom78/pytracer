@@ -39,8 +39,8 @@ class ImageTracer:
 
         The values of `u_pixel` and `v_pixel` are floating-point numbers in the range [0, 1]. They specify where
         the ray should cross the pixel; passing 0.5 to both means that the ray will pass through the pixel's center."""
-        u = (col + u_pixel) / (self.image.width - 1)
-        v = (row + v_pixel) / (self.image.height - 1)
+        u = (col + u_pixel) / self.image.width
+        v = 1.0 - (row + v_pixel) / self.image.height
         return self.camera.fire_ray(u, v)
 
     def fire_all_rays(self, func):
