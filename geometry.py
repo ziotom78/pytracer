@@ -163,6 +163,10 @@ class Point:
         """Return the i-th component of a point, starting from 0"""
         return _get_xyz_element(self, item)
 
+    def to_vec(self):
+        """Convert a `Point` into a `Vec`"""
+        return Vec(self.x, self.y, self.z)
+
 
 @dataclass
 class Normal:
@@ -173,10 +177,17 @@ class Normal:
     y: float = 0.0
     z: float = 0.0
 
+    def __neg__(self):
+        return Normal(-self.x, -self.y, -self.z)
+
     def is_close(self, other, epsilon=1e-5):
         """Return True if the object and 'other' have roughly the same direction and orientation"""
         assert isinstance(other, Normal)
         return _are_xyz_close(self, other, epsilon=epsilon)
+
+    def to_vec(self) -> Vec:
+        """Convert a normal into a :class:`Vec` type"""
+        return Vec(self.x, self.y, self.z)
 
 
 VEC_X = Vec(1.0, 0.0, 0.0)
