@@ -72,3 +72,7 @@ class Color:
         return (are_close(self.r, other.r, epsilon=epsilon) and
                 are_close(self.g, other.g, epsilon=epsilon) and
                 are_close(self.b, other.b, epsilon=epsilon))
+
+
+BLACK = Color(0.0, 0.0, 0.0)
+WHITE = Color(1.0, 1.0, 1.0)
