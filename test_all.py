@@ -451,21 +451,30 @@ class TestCameras(unittest.TestCase):
 
 
 class TestImageTracer(unittest.TestCase):
-    def test_image_tracer(self):
-        image = HdrImage(width=4, height=2)
-        camera = PerspectiveCamera(aspect_ratio=2)
-        tracer = ImageTracer(image=image, camera=camera)
+    def setUp(self) -> None:
+        self.image = HdrImage(width=4, height=2)
+        self.camera = PerspectiveCamera(aspect_ratio=2)
+        self.tracer = ImageTracer(image=self.image, camera=self.camera)
 
+    def test_orientation(self):
+        top_left_ray = self.tracer.fire_ray(0, 0, u_pixel=0.0, v_pixel=0.0)
+        assert Point(0.0, 2.0, 1.0).is_close(top_left_ray.at(1.0))
+
+        bottom_right_ray = self.tracer.fire_ray(3, 1, u_pixel=1.0, v_pixel=1.0)
+        assert Point(0.0, -2.0, -1.0).is_close(bottom_right_ray.at(1.0))
+
+    def test_uv_sub_mapping(self):
         # Here we're cheating: we are asking `ImageTracer.fire_ray` to fire one ray *outside*
         # the pixel we're specifying
-        ray1 = tracer.fire_ray(0, 0, u_pixel=2.5, v_pixel=1.5)
-        ray2 = tracer.fire_ray(2, 1, u_pixel=0.5, v_pixel=0.5)
+        ray1 = self.tracer.fire_ray(0, 0, u_pixel=2.5, v_pixel=1.5)
+        ray2 = self.tracer.fire_ray(2, 1, u_pixel=0.5, v_pixel=0.5)
         assert ray1.is_close(ray2)
 
-        tracer.fire_all_rays(lambda ray: Color(1.0, 2.0, 3.0))
-        for row in range(image.height):
-            for col in range(image.width):
-                assert image.get_pixel(col, row) == Color(1.0, 2.0, 3.0)
+    def test_image_coverage(self):
+        self.tracer.fire_all_rays(lambda ray: Color(1.0, 2.0, 3.0))
+        for row in range(self.image.height):
+            for col in range(self.image.width):
+                assert self.image.get_pixel(col, row) == Color(1.0, 2.0, 3.0)
 
 
 if __name__ == '__main__':
