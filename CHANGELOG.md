@@ -1,9 +1,12 @@
 # HEAD
 
--   **Breaking change**: Implement the `demo` command and enable a nicer CLI interface [#5](https://github.com/ziotom78/pytracer/pull/5)
 -   Properly compute UV coordinates in ray-sphere intersections [#7](https://github.com/ziotom78/pytracer/issues/7)
 -   Fix normal calculation in ray-sphere intersections [#6](https://github.com/ziotom78/pytracer/issues/6)
 -   Fix an issue with the vertical order of the images [#4](https://github.com/ziotom78/pytracer/pull/4)
+
+# 2021-05-05
+
+-   **Breaking change**: Implement the `demo` command and enable a nicer CLI interface [#5](https://github.com/ziotom78/pytracer/pull/5)
 
 # Version 0.1.0
 
