@@ -51,6 +51,7 @@ from imagetracer import ImageTracer
 from hitrecord import HitRecord, Vec2d
 from shapes import Sphere
 from misc import are_close
+from world import World
 
 import pytest
 
@@ -692,6 +693,29 @@ class TestSphere(unittest.TestCase):
 
         ray6 = Ray(origin=Point(2.0, 0.0, -0.5), dir=-VEC_X)
         assert sphere.ray_intersection(ray6).surface_point.is_close(Vec2d(0.0, 2 / 3))
+
+
+class TestWorld(unittest.TestCase):
+    def testRayIntersections(self):
+        world = World()
+
+        sphere1 = Sphere(transformation=translation(VEC_X * 2))
+        sphere2 = Sphere(transformation=translation(VEC_X * 8))
+        world.add(sphere1)
+        world.add(sphere2)
+
+        intersection1 = world.ray_intersection(Ray(
+            origin=Point(0.0, 0.0, 0.0), dir=VEC_X
+        ))
+        assert intersection1
+        assert intersection1.world_point.is_close(Point(1.0, 0.0, 0.0))
+
+        intersection2 = world.ray_intersection(Ray(
+            origin=Point(10.0, 0.0, 0.0), dir=-VEC_X
+        ))
+
+        assert intersection2
+        assert intersection2.world_point.is_close(Point(9.0, 0.0, 0.0))
 
 
 if __name__ == "__main__":
