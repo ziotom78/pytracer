@@ -640,6 +640,16 @@ class TestSphere(unittest.TestCase):
         # We normalize "intersection.normal", as we are not interested in its length
         assert intersection.normal.normalize().is_close(Normal(1.0, 4.0, 0.0).normalize())
 
+    def testNormalDirection(self):
+        # Scaling a sphere by -1 keeps the sphere the same but reverses its
+        # reference frame
+        sphere = Sphere(transformation=scaling(Vec(-1.0, -1.0, -1.0)))
+
+        ray = Ray(origin=Point(0.0, 2.0, 0.0), dir=-VEC_Y)
+        intersection = sphere.ray_intersection(ray)
+        # We normalize "intersection.normal", as we are not interested in its length
+        assert intersection.normal.normalize().is_close(Normal(0.0, 1.0, 0.0).normalize())
+
 
 if __name__ == "__main__":
     unittest.main()
