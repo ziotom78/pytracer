@@ -22,7 +22,7 @@
 # SOFTWARE.
 
 from copy import deepcopy
-from math import pi
+from math import pi, sqrt
 
 import unittest
 from io import BytesIO
@@ -84,7 +84,7 @@ class TestColor(unittest.TestCase):
 
 
 # fmt: off
-        
+
 # This is the content of "reference_le.pfm" (little-endian file)
 LE_REFERENCE_BYTES = bytes(
     [
@@ -118,6 +118,7 @@ BE_REFERENCE_BYTES = bytes(
         0xB4, 0x00, 0x00,
     ]
 )
+
 
 # fmt: on
 
@@ -630,6 +631,14 @@ class TestSphere(unittest.TestCase):
 
         # Check if the *inverse* transformation was wrongly applied
         assert not sphere.ray_intersection(Ray(origin=Point(-10, 0, 0), dir=-VEC_Z))
+
+    def testNormals(self):
+        sphere = Sphere(transformation=scaling(Vec(2.0, 1.0, 1.0)))
+
+        ray = Ray(origin=Point(1.0, 1.0, 0.0), dir=Vec(-1.0, -1.0))
+        intersection = sphere.ray_intersection(ray)
+        # We normalize "intersection.normal", as we are not interested in its length
+        assert intersection.normal.normalize().is_close(Normal(1.0, 4.0, 0.0).normalize())
 
 
 if __name__ == "__main__":
