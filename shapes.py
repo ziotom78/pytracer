@@ -107,7 +107,7 @@ class Sphere(Shape):
         hit_point = inv_ray.at(first_hit_t)
         return HitRecord(
             world_point=self.transformation * hit_point,
-            normal=self.transformation * _sphere_normal(hit_point, ray.dir),
+            normal=self.transformation * _sphere_normal(hit_point, inv_ray.dir),
             surface_point=_sphere_point_to_uv(hit_point),
             t=first_hit_t,
             ray=ray,
