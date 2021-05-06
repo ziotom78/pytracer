@@ -189,6 +189,16 @@ class Normal:
         """Convert a normal into a :class:`Vec` type"""
         return Vec(self.x, self.y, self.z)
 
+    def squared_norm(self):
+        return self.x * self.x + self.y * self.y + self.z * self.z
+
+    def norm(self):
+        return math.sqrt(self.squared_norm())
+
+    def normalize(self):
+        norm = self.norm()
+        return Normal(self.x / norm, self.y / norm, self.z / norm)
+
 
 VEC_X = Vec(1.0, 0.0, 0.0)
 VEC_Y = Vec(0.0, 1.0, 0.0)
