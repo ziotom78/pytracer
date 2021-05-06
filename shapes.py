@@ -33,8 +33,9 @@ from transformations import Transformation
 
 def _sphere_point_to_uv(point: Point) -> Vec2d:
     """Convert a 3D point on the surface of the unit sphere into a (u, v) 2D point"""
+    u = atan2(point.y, point.x) / (2.0 * pi)
     return Vec2d(
-        u=atan2(point.y, point.x) / (2.0 * pi),
+        u=u if u >= 0.0 else u + 1.0,
         v=acos(point.z) / pi,
     )
 
