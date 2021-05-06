@@ -650,6 +650,49 @@ class TestSphere(unittest.TestCase):
         # We normalize "intersection.normal", as we are not interested in its length
         assert intersection.normal.normalize().is_close(Normal(0.0, 1.0, 0.0).normalize())
 
+    def testUVCoordinates(self):
+        sphere = Sphere()
+
+        # The first four rays hit the unit sphere at the
+        # points P1, P2, P3, and P4.
+        #
+        #                    ^ y
+        #                    | P2
+        #              , - ~ * ~ - ,
+        #          , '       |       ' ,
+        #        ,           |           ,
+        #       ,            |            ,
+        #      ,             |             , P1
+        # -----*-------------+-------------*---------> x
+        #   P3 ,             |             ,
+        #       ,            |            ,
+        #        ,           |           ,
+        #          ,         |        , '
+        #            ' - , _ * _ ,  '
+        #                    | P4
+        #
+        # P5 and P6 are aligned along the x axis and are displaced
+        # along z (ray5 in the positive direction, ray6 in the negative
+        # direction).
+
+        ray1 = Ray(origin=Point(2.0, 0.0, 0.0), dir=-VEC_X)
+        assert sphere.ray_intersection(ray1).surface_point.is_close(Vec2d(0.0, 0.5))
+
+        ray2 = Ray(origin=Point(0.0, 2.0, 0.0), dir=-VEC_Y)
+        assert sphere.ray_intersection(ray2).surface_point.is_close(Vec2d(0.25, 0.5))
+
+        ray3 = Ray(origin=Point(-2.0, 0.0, 0.0), dir=VEC_X)
+        assert sphere.ray_intersection(ray3).surface_point.is_close(Vec2d(0.5, 0.5))
+
+        ray4 = Ray(origin=Point(0.0, -2.0, 0.0), dir=VEC_Y)
+        assert sphere.ray_intersection(ray4).surface_point.is_close(Vec2d(0.75, 0.5))
+
+        ray5 = Ray(origin=Point(2.0, 0.0, 0.5), dir=-VEC_X)
+        assert sphere.ray_intersection(ray5).surface_point.is_close(Vec2d(0.0, 1 / 3))
+
+        ray6 = Ray(origin=Point(2.0, 0.0, -0.5), dir=-VEC_X)
+        assert sphere.ray_intersection(ray6).surface_point.is_close(Vec2d(0.0, 2 / 3))
+
 
 if __name__ == "__main__":
     unittest.main()
