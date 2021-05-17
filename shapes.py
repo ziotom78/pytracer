@@ -29,6 +29,7 @@ from geometry import Point, Vec, Normal
 from hitrecord import Vec2d, HitRecord
 from ray import Ray
 from transformations import Transformation
+from materials import Material
 
 
 def _sphere_point_to_uv(point: Point) -> Vec2d:
@@ -61,9 +62,10 @@ class Shape:
 
     """
 
-    def __init__(self, transformation=Transformation()):
+    def __init__(self, transformation: Transformation = Transformation(), material: Material = Material()):
         """Create a shape, potentially associating a transformation to it"""
         self.transformation = transformation
+        self.material = material
 
     def ray_intersection(self, ray: Ray) -> Union[HitRecord, None]:
         """Compute the intersection between a ray and this shape"""
@@ -112,4 +114,5 @@ class Sphere(Shape):
             surface_point=_sphere_point_to_uv(hit_point),
             t=first_hit_t,
             ray=ray,
+            shape=self,
         )

@@ -54,6 +54,8 @@ from misc import are_close
 from world import World
 from pcg import PCG
 
+from materials import UniformPigment, ImagePigment, CheckeredPigment
+
 import pytest
 
 
@@ -574,6 +576,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.0),
             t=1.0,
             ray=ray1,
+            shape=sphere,
         ).is_close(intersection1)
 
         ray2 = Ray(origin=Point(3, 0, 0), dir=-VEC_X)
@@ -585,6 +588,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.5),
             t=2.0,
             ray=ray2,
+            shape=sphere,
         ).is_close(intersection2)
 
         assert not sphere.ray_intersection(Ray(origin=Point(0, 10, 2), dir=-VEC_Z))
@@ -601,6 +605,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.5),
             t=1.0,
             ray=ray,
+            shape=sphere,
         ).is_close(intersection)
 
     def testTransformation(self):
@@ -615,6 +620,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.0),
             t=1.0,
             ray=ray1,
+            shape=sphere,
         ).is_close(intersection1)
 
         ray2 = Ray(origin=Point(13, 0, 0), dir=-VEC_X)
@@ -626,6 +632,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.5),
             t=2.0,
             ray=ray2,
+            shape=sphere,
         ).is_close(intersection2)
 
         # Check if the sphere failed to move by trying to hit the untransformed shape
@@ -735,6 +742,54 @@ class TestPCG(unittest.TestCase):
         ]:
             result = pcg.random()
             assert expected == result
+
+
+class TestPigments(unittest.TestCase):
+    def testUniformPigment(self):
+        color = Color(1.0, 2.0, 3.0)
+        pigment = UniformPigment(color=color)
+
+        assert pigment.get_color(Vec2d(0.0, 0.0)).is_close(color)
+        assert pigment.get_color(Vec2d(1.0, 0.0)).is_close(color)
+        assert pigment.get_color(Vec2d(0.0, 1.0)).is_close(color)
+        assert pigment.get_color(Vec2d(1.0, 1.0)).is_close(color)
+
+    def testImagePigment(self):
+        image = HdrImage(width=2, height=2)
+        image.set_pixel(0, 0, Color(1.0, 2.0, 3.0))
+        image.set_pixel(1, 0, Color(2.0, 3.0, 1.0))
+        image.set_pixel(0, 1, Color(2.0, 1.0, 3.0))
+        image.set_pixel(1, 1, Color(3.0, 2.0, 1.0))
+
+        pigment = ImagePigment(image)
+        assert pigment.get_color(Vec2d(0.0, 0.0)).is_close(Color(1.0, 2.0, 3.0))
+        assert pigment.get_color(Vec2d(1.0, 0.0)).is_close(Color(2.0, 3.0, 1.0))
+        assert pigment.get_color(Vec2d(0.0, 1.0)).is_close(Color(2.0, 1.0, 3.0))
+        assert pigment.get_color(Vec2d(1.0, 1.0)).is_close(Color(3.0, 2.0, 1.0))
+
+    def testCheckeredPigment(self):
+        color1 = Color(1.0, 2.0, 3.0)
+        color2 = Color(10.0, 20.0, 30.0)
+
+        pigment = CheckeredPigment(color1=color1, color2=color2, num_of_steps=2)
+
+        # With num_of_steps == 2, the pattern should be the following:
+        #
+        #              (0.5, 0)
+        #   (0, 0) +------+------+ (1, 0)
+        #          |      |      |
+        #          | col1 | col2 |
+        #          |      |      |
+        # (0, 0.5) +------+------+ (1, 0.5)
+        #          |      |      |
+        #          | col2 | col1 |
+        #          |      |      |
+        #   (0, 1) +------+------+ (1, 1)
+        #              (0.5, 1)
+        assert pigment.get_color(Vec2d(0.25, 0.25)).is_close(color1)
+        assert pigment.get_color(Vec2d(0.75, 0.25)).is_close(color2)
+        assert pigment.get_color(Vec2d(0.25, 0.75)).is_close(color2)
+        assert pigment.get_color(Vec2d(0.75, 0.75)).is_close(color1)
 
 
 if __name__ == "__main__":

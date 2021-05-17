@@ -41,6 +41,7 @@ class HitRecord:
     surface_point: Vec2d
     t: float
     ray: Ray
+    shape: "Shape"
 
     def is_close(self, other: Union["HitRecord", None], epsilon=1e-5) -> bool:
         """Check whether two `HitRecord` represent the same hit event or not"""
