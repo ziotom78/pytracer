@@ -16,6 +16,8 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+from typing import Union
+
 from hitrecord import HitRecord
 from ray import Ray
 from shapes import Shape
@@ -36,7 +38,7 @@ class World:
         """Append a new shape to this world"""
         self.shapes.append(shape)
 
-    def ray_intersection(self, ray: Ray) -> HitRecord:
+    def ray_intersection(self, ray: Ray) -> Union[HitRecord, None]:
         """Determine whether a ray intersects any of the objects in this world"""
         closest = None
 
