@@ -203,3 +203,16 @@ class Normal:
 VEC_X = Vec(1.0, 0.0, 0.0)
 VEC_Y = Vec(0.0, 1.0, 0.0)
 VEC_Z = Vec(0.0, 0.0, 1.0)
+
+
+@dataclass
+class Vec2d:
+    """A 2D vector used to represent a point on a surface
+
+    The fields are named `u` and `v` to distinguish them from the usual 3D coordinates `x`, `y`, `z`."""
+    u: float = 0.0
+    v: float = 0.0
+
+    def is_close(self, other: "Vec2d", epsilon=1e-5):
+        """Check whether two `Vec2d` points are roughly the same or not"""
+        return (abs(self.u - other.u) < epsilon) and (abs(self.v - other.v) < epsilon)
