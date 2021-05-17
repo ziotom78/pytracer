@@ -52,6 +52,7 @@ from hitrecord import HitRecord, Vec2d
 from shapes import Sphere
 from misc import are_close
 from world import World
+from pcg import PCG
 
 import pytest
 
@@ -716,6 +717,24 @@ class TestWorld(unittest.TestCase):
 
         assert intersection2
         assert intersection2.world_point.is_close(Point(9.0, 0.0, 0.0))
+
+
+class TestPCG(unittest.TestCase):
+    def test_random(self):
+        pcg = PCG()
+        assert pcg.state == 1753877967969059832
+        assert pcg.inc == 109
+
+        for expected in [
+            2707161783,
+            2068313097,
+            3122475824,
+            2211639955,
+            3215226955,
+            3421331566,
+        ]:
+            result = pcg.random()
+            assert expected == result
 
 
 if __name__ == "__main__":
