@@ -38,30 +38,6 @@ class Parameters:
     gamma: float = 1.0
     output_png_file_name: str = ""
 
-    def parse_command_line(self, argv):
-        if len(sys.argv) != 5:
-            raise RuntimeError(
-                "Usage: main.py INPUT_PFM_FILE FACTOR GAMMA OUTPUT_PNG_FILE"
-            )
-
-        self.input_pfm_file_name = sys.argv[1]
-
-        try:
-            self.factor = float(sys.argv[2])
-        except ValueError:
-            raise RuntimeError(
-                f"Invalid factor ('{sys.argv[2]}'), it must be a floating-point number."
-            )
-
-        try:
-            self.gamma = float(sys.argv[3])
-        except ValueError:
-            raise RuntimeError(
-                f"Invalid gamma ('{sys.argv[3]}'), it must be a floating-point number."
-            )
-
-        self.output_png_file_name = sys.argv[4]
-
 
 @click.group()
 def cli():
@@ -101,7 +77,7 @@ def demo(width, height, angle_deg, orthogonal, pfm_output, png_output):
                 world.add(
                     Sphere(
                         transformation=translation(Vec(x, y, z))
-                        * scaling(Vec(0.1, 0.1, 0.1))
+                                       * scaling(Vec(0.1, 0.1, 0.1))
                     )
                 )
 
@@ -111,7 +87,7 @@ def demo(width, height, angle_deg, orthogonal, pfm_output, png_output):
     world.add(
         Sphere(
             transformation=translation(Vec(0.0, 0.0, -0.5))
-            * scaling(Vec(0.1, 0.1, 0.1))
+                           * scaling(Vec(0.1, 0.1, 0.1))
         )
     )
     world.add(
