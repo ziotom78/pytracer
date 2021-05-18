@@ -124,6 +124,7 @@ def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output
     )
 
     image = HdrImage(width, height)
+    print(f"Generating a {width}×{height} image, with the camera tilted by {angle_deg}°")
 
     # Initialize a camera
     camera_tr = rotation_z(angle_deg=angle_deg) * translation(Vec(-1.0, 0.0, 0.0))
@@ -168,15 +169,16 @@ def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output
 @click.command("pfm2png")
 @click.option("--factor", type=float, default=0.7, help="Multiplicative factor")
 @click.option("--gamma", type=float, default=1.0, help="Exponent for gamma-correction")
+@click.option("--luminosity", type=float, default=None, help="Average luminosity")
 @click.argument("input_pfm_file_name", type=str)
 @click.argument("output_png_file_name", type=str)
-def pfm2png(factor, gamma, input_pfm_file_name, output_png_file_name):
+def pfm2png(factor, gamma, luminosity, input_pfm_file_name, output_png_file_name):
     with open(input_pfm_file_name, "rb") as inpf:
         img = read_pfm_image(inpf)
 
     print(f"File {input_pfm_file_name} has been read from disk.")
 
-    img.normalize_image(factor=factor)
+    img.normalize_image(factor=factor, luminosity=luminosity)
     img.clamp_image()
 
     with open(output_png_file_name, "wb") as outf:
