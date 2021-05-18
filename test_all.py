@@ -26,7 +26,7 @@ from math import pi, sqrt
 
 import unittest
 from io import BytesIO
-from colors import Color
+from colors import Color, BLACK, WHITE
 from hdrimages import (
     HdrImage,
     InvalidPfmFileFormat,
@@ -53,8 +53,8 @@ from shapes import Sphere
 from misc import are_close
 from world import World
 from pcg import PCG
-
-from materials import UniformPigment, ImagePigment, CheckeredPigment
+from materials import UniformPigment, ImagePigment, CheckeredPigment, DiffuseBRDF, Material
+from render import OnOffRenderer, FlatRenderer
 
 import pytest
 
@@ -790,6 +790,55 @@ class TestPigments(unittest.TestCase):
         assert pigment.get_color(Vec2d(0.75, 0.25)).is_close(color2)
         assert pigment.get_color(Vec2d(0.25, 0.75)).is_close(color2)
         assert pigment.get_color(Vec2d(0.75, 0.75)).is_close(color1)
+
+
+class TestRenderers(unittest.TestCase):
+    def testOnOffRenderer(self):
+        sphere = Sphere(transformation=translation(Vec(2, 0, 0)) * scaling(Vec(0.2, 0.2, 0.2)),
+                        material=Material(brdf=DiffuseBRDF(pigment=UniformPigment(WHITE))))
+        image = HdrImage(width=3, height=3)
+        camera = OrthogonalCamera()
+        tracer = ImageTracer(image=image, camera=camera)
+        world = World()
+        world.add(sphere)
+        renderer = OnOffRenderer(world=world)
+        tracer.fire_all_rays(renderer)
+
+        assert image.get_pixel(0, 0).is_close(BLACK)
+        assert image.get_pixel(1, 0).is_close(BLACK)
+        assert image.get_pixel(2, 0).is_close(BLACK)
+
+        assert image.get_pixel(0, 1).is_close(BLACK)
+        assert image.get_pixel(1, 1).is_close(WHITE)
+        assert image.get_pixel(2, 1).is_close(BLACK)
+
+        assert image.get_pixel(0, 2).is_close(BLACK)
+        assert image.get_pixel(1, 2).is_close(BLACK)
+        assert image.get_pixel(2, 2).is_close(BLACK)
+
+    def testFlatRenderer(self):
+        sphere_color = Color(1.0, 2.0, 3.0)
+        sphere = Sphere(transformation=translation(Vec(2, 0, 0)) * scaling(Vec(0.2, 0.2, 0.2)),
+                        material=Material(brdf=DiffuseBRDF(pigment=UniformPigment(sphere_color))))
+        image = HdrImage(width=3, height=3)
+        camera = OrthogonalCamera()
+        tracer = ImageTracer(image=image, camera=camera)
+        world = World()
+        world.add(sphere)
+        renderer = FlatRenderer(world=world)
+        tracer.fire_all_rays(renderer)
+
+        assert image.get_pixel(0, 0).is_close(BLACK)
+        assert image.get_pixel(1, 0).is_close(BLACK)
+        assert image.get_pixel(2, 0).is_close(BLACK)
+
+        assert image.get_pixel(0, 1).is_close(BLACK)
+        assert image.get_pixel(1, 1).is_close(sphere_color)
+        assert image.get_pixel(2, 1).is_close(BLACK)
+
+        assert image.get_pixel(0, 2).is_close(BLACK)
+        assert image.get_pixel(1, 2).is_close(BLACK)
+        assert image.get_pixel(2, 2).is_close(BLACK)
 
 
 if __name__ == "__main__":
