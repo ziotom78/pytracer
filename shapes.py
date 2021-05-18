@@ -77,9 +77,9 @@ class Shape:
 class Sphere(Shape):
     """A 3D unit sphere centered on the origin of the axes"""
 
-    def __init__(self, transformation=Transformation()):
+    def __init__(self, transformation=Transformation(), material: Material = Material()):
         """Create a unit sphere, potentially associating a transformation to it"""
-        super().__init__(transformation)
+        super().__init__(transformation, material)
 
     def ray_intersection(self, ray: Ray) -> Union[HitRecord, None]:
         """Checks if a ray intersects the sphere
