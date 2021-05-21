@@ -54,3 +54,7 @@ class PCG:
 
         # 32-bit
         return to_uint32((xorshifted >> rot) | (xorshifted << ((-rot) & 31)))
+
+    def random_float(self):
+        """Return a new random number uniformly distributed over [0, 1]"""
+        return self.random() / 0xffffffff
