@@ -182,6 +182,10 @@ class Normal:
     def __neg__(self):
         return Normal(-self.x, -self.y, -self.z)
 
+    def __mul__(self, scalar):
+        """Compute the product between a vector and a scalar"""
+        return _mul_scalar_xyz(scalar=scalar, xyz=self, return_type=Normal)
+
     def is_close(self, other, epsilon=1e-5):
         """Return True if the object and 'other' have roughly the same direction and orientation"""
         assert isinstance(other, Normal)
