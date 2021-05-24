@@ -125,6 +125,7 @@ class Vec:
         self.x /= norm
         self.y /= norm
         self.z /= norm
+        return self
 
 
 @dataclass
