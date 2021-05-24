@@ -243,4 +243,4 @@ def create_onb_from_z(normal: Union[Vec, Normal]) -> Tuple[Vec, Vec, Vec]:
     e1 = Vec(1.0 + sign * normal.x * normal.x * a, sign * b, -sign * normal.x)
     e2 = Vec(b, sign + normal.y * normal.y * a, -normal.y)
 
-    return e1, e2, normal.to_vec()
+    return e1, e2, Vec(normal.x, normal.y, normal.z)
