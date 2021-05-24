@@ -114,7 +114,7 @@ class Sphere(Shape):
             surface_point=_sphere_point_to_uv(hit_point),
             t=first_hit_t,
             ray=ray,
-            shape=self,
+            material=self.material,
         )
 
 
@@ -147,5 +147,5 @@ class Plane(Shape):
             surface_point=Vec2d(hit_point.x - floor(hit_point.x), hit_point.y - floor(hit_point.y)),
             t=t,
             ray=ray,
-            shape=self,
+            material=self.material,
         )

@@ -20,9 +20,8 @@ from dataclasses import dataclass
 from math import floor, pi, sqrt, sin, cos, inf
 
 from colors import Color, BLACK, WHITE
-from geometry import Normal, Vec, Vec2d, create_onb_from_z
+from geometry import Normal, Vec, Vec2d, create_onb_from_z, Point
 from hdrimages import HdrImage
-from hitrecord import HitRecord
 from pcg import PCG
 from ray import Ray
 
@@ -101,7 +100,7 @@ class BRDF:
     def eval(self, normal: Normal, in_dir: Vec, out_dir: Vec, uv: Vec2d) -> Color:
         return BLACK
 
-    def scatter_ray(self, pcg: PCG, hit_record: HitRecord, depth: int):
+    def scatter_ray(self, pcg: PCG, incoming_dir: Vec, interaction_point: Point, normal: Normal, depth: int):
         raise NotImplementedError("You cannot call BRDF.scatter_ray directly!")
 
 
@@ -115,15 +114,15 @@ class DiffuseBRDF(BRDF):
     def eval(self, normal: Normal, in_dir: Vec, out_dir: Vec, uv: Vec2d) -> Color:
         return self.pigment.get_color(uv) * (self.reflectance / pi)
 
-    def scatter_ray(self, pcg: PCG, hit_record: HitRecord, depth: int):
+    def scatter_ray(self, pcg: PCG, incoming_dir: Vec, interaction_point: Point, normal: Normal, depth: int):
         # Cosine-weighted distribution around the z (local) axis
-        e1, e2, e3 = create_onb_from_z(hit_record.normal)
+        e1, e2, e3 = create_onb_from_z(normal)
         r1 = 2.0 * pi * pcg.random_float()
         r2 = pcg.random_float()
         r2sqrt = sqrt(r2)
 
         return Ray(
-            origin=hit_record.world_point,
+            origin=interaction_point,
             dir=e1 * cos(r1) * r2sqrt + e2 * sin(r1) * r2sqrt + e3 * sqrt(1.0 - r2),
             tmin=1.0e-3,
             tmax=inf,

@@ -64,7 +64,7 @@ class FlatRenderer(Renderer):
         if not hit:
             return self.background_color
 
-        material = hit.shape.material
+        material = hit.material
 
         return (material.brdf.pigment.get_color(hit.surface_point) +
                 material.emitted_radiance.get_color(hit.surface_point))
@@ -94,7 +94,7 @@ class PathTracer(Renderer):
         if not hit_record:
             return self.background_color
 
-        hit_material = hit_record.shape.material
+        hit_material = hit_record.material
         hit_color = hit_material.brdf.pigment.get_color(hit_record.surface_point)
         emitted_radiance = hit_material.emitted_radiance.get_color(hit_record.surface_point)
 
@@ -112,7 +112,13 @@ class PathTracer(Renderer):
         cum_radiance = Color(0.0, 0.0, 0.0)
         if hit_color_lum > 0.0:  # Only do costly recursions if it's worth it
             for ray_index in range(self.num_of_rays):
-                new_ray = hit_material.brdf.scatter_ray(self.pcg, hit_record, ray.depth + 1)
+                new_ray = hit_material.brdf.scatter_ray(
+                    pcg=self.pcg,
+                    incoming_dir=hit_record.ray.dir,
+                    interaction_point=hit_record.world_point,
+                    normal=hit_record.normal,
+                    depth=ray.depth + 1,
+                )
                 # Recursive call
                 new_radiance = self(new_ray)
                 cum_radiance += hit_color * new_radiance

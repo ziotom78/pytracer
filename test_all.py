@@ -575,7 +575,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.0),
             t=1.0,
             ray=ray1,
-            shape=sphere,
+            material=sphere.material,
         ).is_close(intersection1)
 
         ray2 = Ray(origin=Point(3, 0, 0), dir=-VEC_X)
@@ -587,7 +587,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.5),
             t=2.0,
             ray=ray2,
-            shape=sphere,
+            material=sphere.material,
         ).is_close(intersection2)
 
         assert not sphere.ray_intersection(Ray(origin=Point(0, 10, 2), dir=-VEC_Z))
@@ -604,7 +604,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.5),
             t=1.0,
             ray=ray,
-            shape=sphere,
+            material=sphere.material,
         ).is_close(intersection)
 
     def testTransformation(self):
@@ -619,7 +619,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.0),
             t=1.0,
             ray=ray1,
-            shape=sphere,
+            material=sphere.material,
         ).is_close(intersection1)
 
         ray2 = Ray(origin=Point(13, 0, 0), dir=-VEC_X)
@@ -631,7 +631,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.5),
             t=2.0,
             ray=ray2,
-            shape=sphere,
+            material=sphere.material,
         ).is_close(intersection2)
 
         # Check if the sphere failed to move by trying to hit the untransformed shape
@@ -715,7 +715,7 @@ class TestPlane(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.0),
             t=1.0,
             ray=ray1,
-            shape=plane,
+            material=plane.material,
         ).is_close(intersection1)
 
         ray2 = Ray(origin=Point(0, 0, 1), dir=VEC_Z)
@@ -742,7 +742,7 @@ class TestPlane(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.0),
             t=1.0,
             ray=ray1,
-            shape=plane,
+            material=plane.material,
         ).is_close(intersection1)
 
         ray2 = Ray(origin=Point(0, 0, 1), dir=VEC_Z)
