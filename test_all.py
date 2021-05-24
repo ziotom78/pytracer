@@ -49,7 +49,7 @@ from camera import OrthogonalCamera, PerspectiveCamera
 from ray import Ray
 from imagetracer import ImageTracer
 from hitrecord import HitRecord, Vec2d
-from shapes import Sphere
+from shapes import Sphere, Plane
 from misc import are_close
 from world import World
 from pcg import PCG
@@ -700,6 +700,77 @@ class TestSphere(unittest.TestCase):
 
         ray6 = Ray(origin=Point(2.0, 0.0, -0.5), dir=-VEC_X)
         assert sphere.ray_intersection(ray6).surface_point.is_close(Vec2d(0.0, 2 / 3))
+
+
+class TestPlane(unittest.TestCase):
+    def testHit(self):
+        plane = Plane()
+
+        ray1 = Ray(origin=Point(0, 0, 1), dir=-VEC_Z)
+        intersection1 = plane.ray_intersection(ray1)
+        assert intersection1
+        assert HitRecord(
+            world_point=Point(0.0, 0.0, 0.0),
+            normal=Normal(0.0, 0.0, 1.0),
+            surface_point=Vec2d(0.0, 0.0),
+            t=1.0,
+            ray=ray1,
+            shape=plane,
+        ).is_close(intersection1)
+
+        ray2 = Ray(origin=Point(0, 0, 1), dir=VEC_Z)
+        intersection2 = plane.ray_intersection(ray2)
+        assert not intersection2
+
+        ray3 = Ray(origin=Point(0, 0, 1), dir=VEC_X)
+        intersection3 = plane.ray_intersection(ray3)
+        assert not intersection3
+
+        ray4 = Ray(origin=Point(0, 0, 1), dir=VEC_Y)
+        intersection4 = plane.ray_intersection(ray4)
+        assert not intersection4
+
+    def testTransformation(self):
+        plane = Plane(transformation=rotation_y(angle_deg=90.0))
+
+        ray1 = Ray(origin=Point(1, 0, 0), dir=-VEC_X)
+        intersection1 = plane.ray_intersection(ray1)
+        assert intersection1
+        assert HitRecord(
+            world_point=Point(0.0, 0.0, 0.0),
+            normal=Normal(1.0, 0.0, 0.0),
+            surface_point=Vec2d(0.0, 0.0),
+            t=1.0,
+            ray=ray1,
+            shape=plane,
+        ).is_close(intersection1)
+
+        ray2 = Ray(origin=Point(0, 0, 1), dir=VEC_Z)
+        intersection2 = plane.ray_intersection(ray2)
+        assert not intersection2
+
+        ray3 = Ray(origin=Point(0, 0, 1), dir=VEC_X)
+        intersection3 = plane.ray_intersection(ray3)
+        assert not intersection3
+
+        ray4 = Ray(origin=Point(0, 0, 1), dir=VEC_Y)
+        intersection4 = plane.ray_intersection(ray4)
+        assert not intersection4
+
+    def testUVCoordinates(self):
+        plane = Plane()
+
+        ray1 = Ray(origin=Point(0, 0, 1), dir=-VEC_Z)
+        intersection1 = plane.ray_intersection(ray1)
+        assert intersection1.surface_point.is_close(Vec2d(0.0, 0.0))
+
+        ray2 = Ray(origin=Point(0.25, 0.75, 1), dir=-VEC_Z)
+        intersection2 = plane.ray_intersection(ray2)
+        assert intersection2.surface_point.is_close(Vec2d(0.25, 0.75))
+
+        ray3 = Ray(origin=Point(4.25, 7.75, 1), dir=-VEC_Z)
+        intersection3 = plane.ray_intersection(ray3)
+        assert intersection3.surface_point.is_close(Vec2d(0.25, 0.75))
 
 
 class TestWorld(unittest.TestCase):
