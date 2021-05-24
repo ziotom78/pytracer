@@ -69,7 +69,7 @@ class Shape:
 
     def ray_intersection(self, ray: Ray) -> Union[HitRecord, None]:
         """Compute the intersection between a ray and this shape"""
-        return NotImplementedError(
+        raise NotImplementedError(
             "Shape.ray_intersection is an abstract method and cannot be called directly"
         )
 
