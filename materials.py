@@ -17,7 +17,7 @@
 # IN THE SOFTWARE.
 
 from dataclasses import dataclass
-from math import floor, pi, sqrt, sin, cos, inf
+from math import floor, pi, sqrt, sin, cos, inf, acos
 
 from colors import Color, BLACK, WHITE
 from geometry import Normal, Vec, Vec2d, create_onb_from_z, Point
@@ -125,6 +125,41 @@ class DiffuseBRDF(BRDF):
             origin=interaction_point,
             dir=e1 * cos(r1) * r2sqrt + e2 * sin(r1) * r2sqrt + e3 * sqrt(1.0 - r2),
             tmin=1.0e-3,
+            tmax=inf,
+            depth=depth,
+        )
+
+
+class SpecularBRDF(BRDF):
+    """A class representing an ideal mirror BRDF"""
+
+    def __init__(self, pigment: Pigment = UniformPigment(WHITE), threshold_angle_rad=pi / 1800.0):
+        super().__init__(pigment)
+        self.threshold_angle_rad = threshold_angle_rad
+
+    def eval(self, normal: Normal, in_dir: Vec, out_dir: Vec, uv: Vec2d) -> Color:
+        # We provide this implementation for reference, but we are not going to use it (neither in the
+        # path tracer nor in the point-light tracer)
+        theta_in = acos(normal.to_vec().dot(in_dir))
+        theta_out = acos(normal.to_vec().dot(out_dir))
+
+        if abs(theta_in - theta_out) < self.threshold_angle_rad:
+            return self.pigment.get_color(uv)
+        else:
+            return Color(0.0, 0.0, 0.0)
+
+    def scatter_ray(self, pcg: PCG, incoming_dir: Vec, interaction_point: Point, normal: Normal, depth: int):
+        # There is no need to use the PCG here, as the reflected direction is always completely deterministic
+        # for a perfect mirror
+
+        ray_dir = Vec(incoming_dir.x, incoming_dir.y, incoming_dir.z).normalize()
+        normal = normal.to_vec().normalize()
+        dot_prod = normal.dot(ray_dir)
+
+        return Ray(
+            origin=interaction_point,
+            dir=ray_dir - normal * 2 * dot_prod,
+            tmin=1e-5,
             tmax=inf,
             depth=depth,
         )
