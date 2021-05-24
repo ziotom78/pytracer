@@ -40,7 +40,7 @@ class World:
 
     def ray_intersection(self, ray: Ray) -> Union[HitRecord, None]:
         """Determine whether a ray intersects any of the objects in this world"""
-        closest = None
+        closest: Union[HitRecord, None] = None
 
         for shape in self.shapes:
             intersection = shape.ray_intersection(ray)
@@ -52,5 +52,8 @@ class World:
             if (not closest) or (intersection.t < closest.t):
                 # There was a hit, and it was closer than any other hit found before
                 closest = intersection
+
+        if closest:
+            closest.normal = closest.normal.normalize()
 
         return closest
