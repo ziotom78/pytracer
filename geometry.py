@@ -196,8 +196,12 @@ class Normal:
         return math.sqrt(self.squared_norm())
 
     def normalize(self):
+        """Modify the vector's norm so that it becomes equal to 1"""
         norm = self.norm()
-        return Normal(self.x / norm, self.y / norm, self.z / norm)
+        self.x /= norm
+        self.y /= norm
+        self.z /= norm
+        return self
 
 
 VEC_X = Vec(1.0, 0.0, 0.0)
