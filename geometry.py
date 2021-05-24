@@ -18,6 +18,8 @@
 
 import math
 from dataclasses import dataclass
+from typing import Tuple, Union
+
 from misc import are_close
 
 
@@ -220,3 +222,21 @@ class Vec2d:
     def is_close(self, other: "Vec2d", epsilon=1e-5):
         """Check whether two `Vec2d` points are roughly the same or not"""
         return (abs(self.u - other.u) < epsilon) and (abs(self.v - other.v) < epsilon)
+
+
+def create_onb_from_z(normal: Union[Vec, Normal]) -> Tuple[Vec, Vec, Vec]:
+    """Create a orthonormal basis (ONB) from a vector representing the z axis (normalized)
+
+    Return a tuple containing the three vectors (e1, e2, e3) of the basis. The result is such
+    that e3 = normal.
+
+    The `normal` vector must be *normalized*, otherwise this method won't work.
+    """
+    sign = 1.0 if (normal.z > 0.0) else -1.0
+    a = -1.0 / (sign + normal.z)
+    b = normal.x * normal.y * a
+
+    e1 = Vec(1.0 + sign * normal.x * normal.x * a, sign * b, -sign * normal.x)
+    e2 = Vec(b, sign + normal.y * normal.y * a, -normal.y)
+
+    return e1, e2, normal.to_vec()
