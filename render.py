@@ -17,6 +17,7 @@
 # IN THE SOFTWARE.
 
 from colors import Color, WHITE, BLACK
+from pcg import PCG
 from ray import Ray
 from world import World
 
@@ -67,3 +68,53 @@ class FlatRenderer(Renderer):
 
         return (material.brdf.pigment.get_color(hit.surface_point) +
                 material.emitted_radiance.get_color(hit.surface_point))
+
+
+class PathTracer(Renderer):
+    """A simple path-tracing renderer
+
+    The algorithm implemented here allows the caller to tune number of rays thrown at each iteration, as well as the
+    maximum depth. It implements Russian roulette, so in principle it will take a finite time to complete the
+    calculation even if you set max_depth to `math.inf`.
+    """
+
+    def __init__(self, world: World, background_color: Color = BLACK, pcg: PCG = PCG(), num_of_rays: int = 10,
+                 max_depth: int = 2, russian_roulette_limit=3):
+        super().__init__(world, background_color)
+        self.pcg = pcg
+        self.num_of_rays = num_of_rays
+        self.max_depth = max_depth
+        self.russian_roulette_limit = russian_roulette_limit
+
+    def __call__(self, ray: Ray) -> Color:
+        if ray.depth > self.max_depth:
+            return Color(0.0, 0.0, 0.0)
+
+        hit_record = self.world.ray_intersection(ray)
+        if not hit_record:
+            return self.background_color
+
+        hit_material = hit_record.shape.material
+        hit_color = hit_material.brdf.pigment.get_color(hit_record.surface_point)
+        emitted_radiance = hit_material.emitted_radiance.get_color(hit_record.surface_point)
+
+        hit_color_lum = max(hit_color.r, hit_color.g, hit_color.b)
+
+        # Russian roulette
+        if ray.depth >= self.russian_roulette_limit:
+            if self.pcg.random_float() > hit_color_lum:
+                # Keep the recursion going, but compensate for other potentially discarded rays
+                hit_color *= 1.0 / (1.0 - hit_color_lum)
+            else:
+                # Terminate prematurely
+                return emitted_radiance
+
+        cum_radiance = Color(0.0, 0.0, 0.0)
+        if hit_color_lum > 0.0:  # Only do costly recursions if it's worth it
+            for ray_index in range(self.num_of_rays):
+                new_ray = hit_material.brdf.scatter_ray(self.pcg, hit_record, ray.depth + 1)
+                # Recursive call
+                new_radiance = self(new_ray)
+                cum_radiance += hit_color * new_radiance
+
+        return emitted_radiance + cum_radiance * (1.0 / self.num_of_rays)
