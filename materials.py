@@ -17,11 +17,14 @@
 # IN THE SOFTWARE.
 
 from dataclasses import dataclass
-from math import floor, pi
+from math import floor, pi, sqrt, sin, cos, inf
 
 from colors import Color, BLACK, WHITE
-from geometry import Normal, Vec, Vec2d
+from geometry import Normal, Vec, Vec2d, create_onb_from_z
 from hdrimages import HdrImage
+from hitrecord import HitRecord
+from pcg import PCG
+from ray import Ray
 
 
 class Pigment:
@@ -91,21 +94,41 @@ class CheckeredPigment(Pigment):
 
 class BRDF:
     """An abstract class representing a Bidirectional Reflectance Distribution Function"""
+
     def __init__(self, pigment: Pigment = UniformPigment(WHITE)):
         self.pigment = pigment
 
     def eval(self, normal: Normal, in_dir: Vec, out_dir: Vec, uv: Vec2d) -> Color:
         return BLACK
 
+    def scatter_ray(self, pcg: PCG, hit_record: HitRecord, depth: int):
+        raise NotImplementedError("You cannot call BRDF.scatter_ray directly!")
+
 
 class DiffuseBRDF(BRDF):
     """A class representing an ideal diffuse BRDF (also called «Lambertian»)"""
+
     def __init__(self, pigment: Pigment = UniformPigment(WHITE), reflectance: float = 1.0):
         super().__init__(pigment)
         self.reflectance = reflectance
 
     def eval(self, normal: Normal, in_dir: Vec, out_dir: Vec, uv: Vec2d) -> Color:
         return self.pigment.get_color(uv) * (self.reflectance / pi)
+
+    def scatter_ray(self, pcg: PCG, hit_record: HitRecord, depth: int):
+        # Cosine-weighted distribution around the z (local) axis
+        e1, e2, e3 = create_onb_from_z(hit_record.normal)
+        r1 = 2.0 * pi * pcg.random_float()
+        r2 = pcg.random_float()
+        r2sqrt = sqrt(r2)
+
+        return Ray(
+            origin=hit_record.world_point,
+            dir=e1 * cos(r1) * r2sqrt + e2 * sin(r1) * r2sqrt + e3 * sqrt(1.0 - r2),
+            tmin=1.0e-3,
+            tmax=inf,
+            depth=depth,
+        )
 
 
 @dataclass
