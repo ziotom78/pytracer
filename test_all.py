@@ -949,15 +949,11 @@ class TestPathTracer(unittest.TestCase):
                 emitted_radiance=UniformPigment(Color(1.0, 1.0, 1.0) * emitted_radiance),
             )
 
-            world.add(Sphere(material=enclosure_material, transformation=scaling(Vec(10.0, 10.0, 10.0))))
+            world.add(Sphere(material=enclosure_material))
 
-            image = HdrImage(1, 1)
-
-            camera = PerspectiveCamera(aspect_ratio=1.0)
-            tracer = ImageTracer(image=image, camera=camera)
             path_tracer = PathTracer(pcg=pcg, num_of_rays=1, world=world, max_depth=100, russian_roulette_limit=101)
 
-            ray = tracer.fire_ray(0, 0)
+            ray = Ray(origin=Point(0, 0, 0), dir=Vec(1, 0, 0))
             color = path_tracer(ray)
 
             expected = emitted_radiance / (1.0 - reflectance)
