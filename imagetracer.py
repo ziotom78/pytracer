@@ -50,7 +50,15 @@ class ImageTracer:
 
         For each pixel in the :class:`.HdrImage` object fire one ray, and pass it to the function `func`, which
         must accept a :class:`.Ray` as its only parameter and must return a :class:`.Color` instance telling the
-        color to assign to that pixel in the image."""
+        color to assign to that pixel in the image.
+
+        If `callback` is not none, it must be a function accepting at least two parameters named `col` and `row`.
+        This function is called periodically during the rendering, and the two mandatory arguments are the row and
+        column number of the last pixel that has been traced. (Both the row and column are increased by one starting
+        from zero: first the row and then the column.) The time between two consecutive calls to the callback can be
+        tuned using the parameter `callback_time_s`. Any keyword argument passed to `fire_all_rays` is passed to the
+        callback.
+        """
         last_call_time = process_time()
         callback(0, 0, **callback_kwargs)
         for row in range(self.image.height):
@@ -61,5 +69,5 @@ class ImageTracer:
 
                 current_time = process_time()
                 if callback and (current_time - last_call_time > callback_time_s):
-                    callback(row, col, **callback_kwargs)
+                    callback(col=col, row=row, **callback_kwargs)
                     last_call_time = current_time
