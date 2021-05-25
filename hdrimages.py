@@ -212,7 +212,7 @@ def _parse_endianness(line: str):
         raise InvalidPfmFileFormat("invalid endianness specification")
 
 
-def read_pfm_image(stream):
+def read_pfm_image(stream) -> HdrImage:
     """Read a PFM image from a stream
 
     Return a ``HdrImage`` object containing the image. If an error occurs, raise a

@@ -19,21 +19,9 @@
 from dataclasses import dataclass
 from typing import Union
 
-from geometry import Point, Normal
+from geometry import Point, Normal, Vec2d
+from materials import Material
 from ray import Ray
-
-
-@dataclass
-class Vec2d:
-    """A 2D vector used to represent a point on a surface
-
-    The fields are named `u` and `v` to distinguish them from the usual 3D coordinates `x`, `y`, `z`."""
-    u: float = 0.0
-    v: float = 0.0
-
-    def is_close(self, other: "Vec2d", epsilon=1e-5):
-        """Check whether two `Vec2d` points are roughly the same or not"""
-        return (abs(self.u - other.u) < epsilon) and (abs(self.v - other.v) < epsilon)
 
 
 @dataclass
@@ -54,6 +42,7 @@ class HitRecord:
     surface_point: Vec2d
     t: float
     ray: Ray
+    material: Material
 
     def is_close(self, other: Union["HitRecord", None], epsilon=1e-5) -> bool:
         """Check whether two `HitRecord` represent the same hit event or not"""

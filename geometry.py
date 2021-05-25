@@ -18,6 +18,8 @@
 
 import math
 from dataclasses import dataclass
+from typing import Tuple, Union
+
 from misc import are_close
 
 
@@ -123,6 +125,7 @@ class Vec:
         self.x /= norm
         self.y /= norm
         self.z /= norm
+        return self
 
 
 @dataclass
@@ -180,6 +183,10 @@ class Normal:
     def __neg__(self):
         return Normal(-self.x, -self.y, -self.z)
 
+    def __mul__(self, scalar):
+        """Compute the product between a vector and a scalar"""
+        return _mul_scalar_xyz(scalar=scalar, xyz=self, return_type=Normal)
+
     def is_close(self, other, epsilon=1e-5):
         """Return True if the object and 'other' have roughly the same direction and orientation"""
         assert isinstance(other, Normal)
@@ -196,10 +203,45 @@ class Normal:
         return math.sqrt(self.squared_norm())
 
     def normalize(self):
+        """Modify the vector's norm so that it becomes equal to 1"""
         norm = self.norm()
-        return Normal(self.x / norm, self.y / norm, self.z / norm)
+        self.x /= norm
+        self.y /= norm
+        self.z /= norm
+        return self
 
 
 VEC_X = Vec(1.0, 0.0, 0.0)
 VEC_Y = Vec(0.0, 1.0, 0.0)
 VEC_Z = Vec(0.0, 0.0, 1.0)
+
+
+@dataclass
+class Vec2d:
+    """A 2D vector used to represent a point on a surface
+
+    The fields are named `u` and `v` to distinguish them from the usual 3D coordinates `x`, `y`, `z`."""
+    u: float = 0.0
+    v: float = 0.0
+
+    def is_close(self, other: "Vec2d", epsilon=1e-5):
+        """Check whether two `Vec2d` points are roughly the same or not"""
+        return (abs(self.u - other.u) < epsilon) and (abs(self.v - other.v) < epsilon)
+
+
+def create_onb_from_z(normal: Union[Vec, Normal]) -> Tuple[Vec, Vec, Vec]:
+    """Create a orthonormal basis (ONB) from a vector representing the z axis (normalized)
+
+    Return a tuple containing the three vectors (e1, e2, e3) of the basis. The result is such
+    that e3 = normal.
+
+    The `normal` vector must be *normalized*, otherwise this method won't work.
+    """
+    sign = 1.0 if (normal.z > 0.0) else -1.0
+    a = -1.0 / (sign + normal.z)
+    b = normal.x * normal.y * a
+
+    e1 = Vec(1.0 + sign * normal.x * normal.x * a, sign * b, -sign * normal.x)
+    e2 = Vec(b, sign + normal.y * normal.y * a, -normal.y)
+
+    return e1, e2, Vec(normal.x, normal.y, normal.z)

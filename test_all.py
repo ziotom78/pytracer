@@ -26,7 +26,7 @@ from math import pi, sqrt
 
 import unittest
 from io import BytesIO
-from colors import Color
+from colors import Color, BLACK, WHITE
 from hdrimages import (
     HdrImage,
     InvalidPfmFileFormat,
@@ -36,7 +36,7 @@ from hdrimages import (
     _parse_img_size,
     _parse_endianness,
 )
-from geometry import Vec, Point, Normal, VEC_X, VEC_Y, VEC_Z
+from geometry import Vec, Point, Normal, VEC_X, VEC_Y, VEC_Z, create_onb_from_z
 from transformations import (
     Transformation,
     translation,
@@ -49,9 +49,12 @@ from camera import OrthogonalCamera, PerspectiveCamera
 from ray import Ray
 from imagetracer import ImageTracer
 from hitrecord import HitRecord, Vec2d
-from shapes import Sphere
+from shapes import Sphere, Plane
 from misc import are_close
 from world import World
+from pcg import PCG
+from materials import UniformPigment, ImagePigment, CheckeredPigment, DiffuseBRDF, Material
+from render import OnOffRenderer, FlatRenderer, PathTracer
 
 import pytest
 
@@ -168,7 +171,6 @@ class TestHdrImage(unittest.TestCase):
 
         be_buf = BytesIO()
         img.write_pfm(be_buf, endianness=Endianness.BIG_ENDIAN)
-        print(be_buf.getvalue())
         assert be_buf.getvalue() == BE_REFERENCE_BYTES
 
     def test_pfm_read_line(self):
@@ -573,6 +575,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.0),
             t=1.0,
             ray=ray1,
+            material=sphere.material,
         ).is_close(intersection1)
 
         ray2 = Ray(origin=Point(3, 0, 0), dir=-VEC_X)
@@ -584,6 +587,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.5),
             t=2.0,
             ray=ray2,
+            material=sphere.material,
         ).is_close(intersection2)
 
         assert not sphere.ray_intersection(Ray(origin=Point(0, 10, 2), dir=-VEC_Z))
@@ -600,6 +604,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.5),
             t=1.0,
             ray=ray,
+            material=sphere.material,
         ).is_close(intersection)
 
     def testTransformation(self):
@@ -614,6 +619,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.0),
             t=1.0,
             ray=ray1,
+            material=sphere.material,
         ).is_close(intersection1)
 
         ray2 = Ray(origin=Point(13, 0, 0), dir=-VEC_X)
@@ -625,6 +631,7 @@ class TestSphere(unittest.TestCase):
             surface_point=Vec2d(0.0, 0.5),
             t=2.0,
             ray=ray2,
+            material=sphere.material,
         ).is_close(intersection2)
 
         # Check if the sphere failed to move by trying to hit the untransformed shape
@@ -695,6 +702,77 @@ class TestSphere(unittest.TestCase):
         assert sphere.ray_intersection(ray6).surface_point.is_close(Vec2d(0.0, 2 / 3))
 
 
+class TestPlane(unittest.TestCase):
+    def testHit(self):
+        plane = Plane()
+
+        ray1 = Ray(origin=Point(0, 0, 1), dir=-VEC_Z)
+        intersection1 = plane.ray_intersection(ray1)
+        assert intersection1
+        assert HitRecord(
+            world_point=Point(0.0, 0.0, 0.0),
+            normal=Normal(0.0, 0.0, 1.0),
+            surface_point=Vec2d(0.0, 0.0),
+            t=1.0,
+            ray=ray1,
+            material=plane.material,
+        ).is_close(intersection1)
+
+        ray2 = Ray(origin=Point(0, 0, 1), dir=VEC_Z)
+        intersection2 = plane.ray_intersection(ray2)
+        assert not intersection2
+
+        ray3 = Ray(origin=Point(0, 0, 1), dir=VEC_X)
+        intersection3 = plane.ray_intersection(ray3)
+        assert not intersection3
+
+        ray4 = Ray(origin=Point(0, 0, 1), dir=VEC_Y)
+        intersection4 = plane.ray_intersection(ray4)
+        assert not intersection4
+
+    def testTransformation(self):
+        plane = Plane(transformation=rotation_y(angle_deg=90.0))
+
+        ray1 = Ray(origin=Point(1, 0, 0), dir=-VEC_X)
+        intersection1 = plane.ray_intersection(ray1)
+        assert intersection1
+        assert HitRecord(
+            world_point=Point(0.0, 0.0, 0.0),
+            normal=Normal(1.0, 0.0, 0.0),
+            surface_point=Vec2d(0.0, 0.0),
+            t=1.0,
+            ray=ray1,
+            material=plane.material,
+        ).is_close(intersection1)
+
+        ray2 = Ray(origin=Point(0, 0, 1), dir=VEC_Z)
+        intersection2 = plane.ray_intersection(ray2)
+        assert not intersection2
+
+        ray3 = Ray(origin=Point(0, 0, 1), dir=VEC_X)
+        intersection3 = plane.ray_intersection(ray3)
+        assert not intersection3
+
+        ray4 = Ray(origin=Point(0, 0, 1), dir=VEC_Y)
+        intersection4 = plane.ray_intersection(ray4)
+        assert not intersection4
+
+    def testUVCoordinates(self):
+        plane = Plane()
+
+        ray1 = Ray(origin=Point(0, 0, 1), dir=-VEC_Z)
+        intersection1 = plane.ray_intersection(ray1)
+        assert intersection1.surface_point.is_close(Vec2d(0.0, 0.0))
+
+        ray2 = Ray(origin=Point(0.25, 0.75, 1), dir=-VEC_Z)
+        intersection2 = plane.ray_intersection(ray2)
+        assert intersection2.surface_point.is_close(Vec2d(0.25, 0.75))
+
+        ray3 = Ray(origin=Point(4.25, 7.75, 1), dir=-VEC_Z)
+        intersection3 = plane.ray_intersection(ray3)
+        assert intersection3.surface_point.is_close(Vec2d(0.25, 0.75))
+
+
 class TestWorld(unittest.TestCase):
     def testRayIntersections(self):
         world = World()
@@ -716,6 +794,172 @@ class TestWorld(unittest.TestCase):
 
         assert intersection2
         assert intersection2.world_point.is_close(Point(9.0, 0.0, 0.0))
+
+
+class TestPCG(unittest.TestCase):
+    def test_random(self):
+        pcg = PCG()
+        assert pcg.state == 1753877967969059832
+        assert pcg.inc == 109
+
+        for expected in [
+            2707161783,
+            2068313097,
+            3122475824,
+            2211639955,
+            3215226955,
+            3421331566,
+        ]:
+            result = pcg.random()
+            assert expected == result
+
+
+class TestPigments(unittest.TestCase):
+    def testUniformPigment(self):
+        color = Color(1.0, 2.0, 3.0)
+        pigment = UniformPigment(color=color)
+
+        assert pigment.get_color(Vec2d(0.0, 0.0)).is_close(color)
+        assert pigment.get_color(Vec2d(1.0, 0.0)).is_close(color)
+        assert pigment.get_color(Vec2d(0.0, 1.0)).is_close(color)
+        assert pigment.get_color(Vec2d(1.0, 1.0)).is_close(color)
+
+    def testImagePigment(self):
+        image = HdrImage(width=2, height=2)
+        image.set_pixel(0, 0, Color(1.0, 2.0, 3.0))
+        image.set_pixel(1, 0, Color(2.0, 3.0, 1.0))
+        image.set_pixel(0, 1, Color(2.0, 1.0, 3.0))
+        image.set_pixel(1, 1, Color(3.0, 2.0, 1.0))
+
+        pigment = ImagePigment(image)
+        assert pigment.get_color(Vec2d(0.0, 0.0)).is_close(Color(1.0, 2.0, 3.0))
+        assert pigment.get_color(Vec2d(1.0, 0.0)).is_close(Color(2.0, 3.0, 1.0))
+        assert pigment.get_color(Vec2d(0.0, 1.0)).is_close(Color(2.0, 1.0, 3.0))
+        assert pigment.get_color(Vec2d(1.0, 1.0)).is_close(Color(3.0, 2.0, 1.0))
+
+    def testCheckeredPigment(self):
+        color1 = Color(1.0, 2.0, 3.0)
+        color2 = Color(10.0, 20.0, 30.0)
+
+        pigment = CheckeredPigment(color1=color1, color2=color2, num_of_steps=2)
+
+        # With num_of_steps == 2, the pattern should be the following:
+        #
+        #              (0.5, 0)
+        #   (0, 0) +------+------+ (1, 0)
+        #          |      |      |
+        #          | col1 | col2 |
+        #          |      |      |
+        # (0, 0.5) +------+------+ (1, 0.5)
+        #          |      |      |
+        #          | col2 | col1 |
+        #          |      |      |
+        #   (0, 1) +------+------+ (1, 1)
+        #              (0.5, 1)
+        assert pigment.get_color(Vec2d(0.25, 0.25)).is_close(color1)
+        assert pigment.get_color(Vec2d(0.75, 0.25)).is_close(color2)
+        assert pigment.get_color(Vec2d(0.25, 0.75)).is_close(color2)
+        assert pigment.get_color(Vec2d(0.75, 0.75)).is_close(color1)
+
+
+class TestRenderers(unittest.TestCase):
+    def testOnOffRenderer(self):
+        sphere = Sphere(transformation=translation(Vec(2, 0, 0)) * scaling(Vec(0.2, 0.2, 0.2)),
+                        material=Material(brdf=DiffuseBRDF(pigment=UniformPigment(WHITE))))
+        image = HdrImage(width=3, height=3)
+        camera = OrthogonalCamera()
+        tracer = ImageTracer(image=image, camera=camera)
+        world = World()
+        world.add(sphere)
+        renderer = OnOffRenderer(world=world)
+        tracer.fire_all_rays(renderer)
+
+        assert image.get_pixel(0, 0).is_close(BLACK)
+        assert image.get_pixel(1, 0).is_close(BLACK)
+        assert image.get_pixel(2, 0).is_close(BLACK)
+
+        assert image.get_pixel(0, 1).is_close(BLACK)
+        assert image.get_pixel(1, 1).is_close(WHITE)
+        assert image.get_pixel(2, 1).is_close(BLACK)
+
+        assert image.get_pixel(0, 2).is_close(BLACK)
+        assert image.get_pixel(1, 2).is_close(BLACK)
+        assert image.get_pixel(2, 2).is_close(BLACK)
+
+    def testFlatRenderer(self):
+        sphere_color = Color(1.0, 2.0, 3.0)
+        sphere = Sphere(transformation=translation(Vec(2, 0, 0)) * scaling(Vec(0.2, 0.2, 0.2)),
+                        material=Material(brdf=DiffuseBRDF(pigment=UniformPigment(sphere_color))))
+        image = HdrImage(width=3, height=3)
+        camera = OrthogonalCamera()
+        tracer = ImageTracer(image=image, camera=camera)
+        world = World()
+        world.add(sphere)
+        renderer = FlatRenderer(world=world)
+        tracer.fire_all_rays(renderer)
+
+        assert image.get_pixel(0, 0).is_close(BLACK)
+        assert image.get_pixel(1, 0).is_close(BLACK)
+        assert image.get_pixel(2, 0).is_close(BLACK)
+
+        assert image.get_pixel(0, 1).is_close(BLACK)
+        assert image.get_pixel(1, 1).is_close(sphere_color)
+        assert image.get_pixel(2, 1).is_close(BLACK)
+
+        assert image.get_pixel(0, 2).is_close(BLACK)
+        assert image.get_pixel(1, 2).is_close(BLACK)
+        assert image.get_pixel(2, 2).is_close(BLACK)
+
+
+class TestOnbCreation(unittest.TestCase):
+    def testOnbFromNormal(self):
+        pcg = PCG()
+
+        expected_zero = pytest.approx(0.0)
+        expected_one = pytest.approx(1.0)
+
+        for i in range(100):
+            normal = Vec(pcg.random_float(), pcg.random_float(), pcg.random_float())
+            normal.normalize()
+            e1, e2, e3 = create_onb_from_z(normal)
+
+            assert e3.is_close(normal)
+
+            assert expected_one == e1.squared_norm()
+            assert expected_one == e2.squared_norm()
+            assert expected_one == e3.squared_norm()
+
+            assert expected_zero == e1.dot(e2)
+            assert expected_zero == e2.dot(e3)
+            assert expected_zero == e3.dot(e1)
+
+
+class TestPathTracer(unittest.TestCase):
+    def testFurnace(self):
+        pcg = PCG()
+
+        # Run the furnace test several times using random values for the emitted radiance and reflectance
+        for i in range(5):
+            world = World()
+
+            emitted_radiance = pcg.random_float()
+            reflectance = pcg.random_float()
+            enclosure_material = Material(
+                brdf=DiffuseBRDF(pigment=UniformPigment(Color(1.0, 1.0, 1.0) * reflectance)),
+                emitted_radiance=UniformPigment(Color(1.0, 1.0, 1.0) * emitted_radiance),
+            )
+
+            world.add(Sphere(material=enclosure_material))
+
+            path_tracer = PathTracer(pcg=pcg, num_of_rays=1, world=world, max_depth=100, russian_roulette_limit=101)
+
+            ray = Ray(origin=Point(0, 0, 0), dir=Vec(1, 0, 0))
+            color = path_tracer(ray)
+
+            expected = emitted_radiance / (1.0 - reflectance)
+            assert pytest.approx(expected, 1e-3) == color.r
+            assert pytest.approx(expected, 1e-3) == color.g
+            assert pytest.approx(expected, 1e-3) == color.b
 
 
 if __name__ == "__main__":

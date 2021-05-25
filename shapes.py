@@ -23,12 +23,13 @@
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from math import sqrt, atan2, acos, pi
+from math import sqrt, atan2, acos, pi, floor
 from typing import Union
 from geometry import Point, Vec, Normal
 from hitrecord import Vec2d, HitRecord
 from ray import Ray
 from transformations import Transformation
+from materials import Material
 
 
 def _sphere_point_to_uv(point: Point) -> Vec2d:
@@ -61,13 +62,14 @@ class Shape:
 
     """
 
-    def __init__(self, transformation=Transformation()):
+    def __init__(self, transformation: Transformation = Transformation(), material: Material = Material()):
         """Create a shape, potentially associating a transformation to it"""
         self.transformation = transformation
+        self.material = material
 
     def ray_intersection(self, ray: Ray) -> Union[HitRecord, None]:
         """Compute the intersection between a ray and this shape"""
-        return NotImplementedError(
+        raise NotImplementedError(
             "Shape.ray_intersection is an abstract method and cannot be called directly"
         )
 
@@ -75,9 +77,9 @@ class Shape:
 class Sphere(Shape):
     """A 3D unit sphere centered on the origin of the axes"""
 
-    def __init__(self, transformation=Transformation()):
+    def __init__(self, transformation=Transformation(), material: Material = Material()):
         """Create a unit sphere, potentially associating a transformation to it"""
-        super().__init__(transformation)
+        super().__init__(transformation, material)
 
     def ray_intersection(self, ray: Ray) -> Union[HitRecord, None]:
         """Checks if a ray intersects the sphere
@@ -112,4 +114,38 @@ class Sphere(Shape):
             surface_point=_sphere_point_to_uv(hit_point),
             t=first_hit_t,
             ray=ray,
+            material=self.material,
+        )
+
+
+class Plane(Shape):
+    """A 3D infinite plane parallel to the x and y axis and passing through the origin."""
+
+    def __init__(self, transformation=Transformation(), material: Material = Material()):
+        """Create a xy plane, potentially associating a transformation to it"""
+        super().__init__(transformation, material)
+
+    def ray_intersection(self, ray: Ray) -> Union[HitRecord, None]:
+        """Checks if a ray intersects the plane
+
+        Return a `HitRecord`, or `None` if no intersection was found.
+        """
+        inv_ray = ray.transform(self.transformation.inverse())
+        if abs(inv_ray.dir.z) < 1e-5:
+            return None
+
+        t = -inv_ray.origin.z / inv_ray.dir.z
+
+        if (t <= inv_ray.tmin) or (t >= inv_ray.tmax):
+            return None
+
+        hit_point = inv_ray.at(t)
+
+        return HitRecord(
+            world_point=self.transformation * hit_point,
+            normal=self.transformation * Normal(0.0, 0.0, 1.0 if inv_ray.dir.z < 0.0 else -1.0),
+            surface_point=Vec2d(hit_point.x - floor(hit_point.x), hit_point.y - floor(hit_point.y)),
+            t=t,
+            ray=ray,
+            material=self.material,
         )
