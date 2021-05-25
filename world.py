@@ -16,9 +16,11 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from typing import Union
+from typing import Union, List, Any
 
+from geometry import Point
 from hitrecord import HitRecord
+from lights import PointLight
 from ray import Ray
 from shapes import Shape
 
@@ -30,13 +32,20 @@ class World:
     :meth:`.World.ray_intersection` to check whether a light ray intersects any
     of the shapes in the world.
     """
+    shapes: List[Shape]
+    point_lights: List[PointLight]
 
     def __init__(self):
         self.shapes = []
+        self.point_lights = []
 
-    def add(self, shape: Shape):
+    def add_shape(self, shape: Shape):
         """Append a new shape to this world"""
         self.shapes.append(shape)
+
+    def add_light(self, light: PointLight):
+        """Append a new point light to this world"""
+        self.point_lights.append(light)
 
     def ray_intersection(self, ray: Ray) -> Union[HitRecord, None]:
         """Determine whether a ray intersects any of the objects in this world"""
