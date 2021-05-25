@@ -3,6 +3,7 @@
 # 2021-05-26
 
 -   Implement a path tracer [#12](https://github.com/ziotom78/pytracer/pull/12)
+-   Add an antialiasing algorithm [#13](https://github.com/ziotom78/pytracer/pull/13)
 
 # 2021-05-12
 
