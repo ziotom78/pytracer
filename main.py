@@ -17,6 +17,7 @@
 # IN THE SOFTWARE.
 
 from dataclasses import dataclass
+from math import sqrt
 from time import process_time
 import sys
 
@@ -97,8 +98,20 @@ RENDERERS = ["onoff", "flat", "pathtracing"]
     help="Identifier of the sequence produced by the random number generator (positive number).",
     default=54
 )
+@click.option(
+    "--samples-per-pixel",
+    type=int,
+    help="Number of samples per pixel (must be a perfect square, e.g., 16).",
+    default=1,
+)
 def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output, num_of_rays, max_depth, init_state,
-         init_seq):
+         init_seq, samples_per_pixel):
+
+    samples_per_side = int(sqrt(samples_per_pixel))
+    if samples_per_side**2 != samples_per_pixel:
+        print(f"Error, the number of samples per pixel ({samples_per_pixel}) must be a perfect square")
+        return
+
     # Create a world and populate it with a few shapes
     world = World()
 
@@ -150,7 +163,7 @@ def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output
 
     # Run the ray-tracer
 
-    tracer = ImageTracer(image=image, camera=camera)
+    tracer = ImageTracer(image=image, camera=camera, samples_per_side=samples_per_side)
 
     if algorithm == "onoff":
         print("Using on/off renderer")
