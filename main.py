@@ -26,12 +26,13 @@ from camera import OrthogonalCamera, PerspectiveCamera
 from colors import Color, BLACK, WHITE
 from geometry import Point, Vec
 from imagetracer import ImageTracer
+from lights import PointLight
 from pcg import PCG
 from shapes import Sphere, Plane
 from transformations import translation, scaling, rotation_z
 from world import World
 from materials import UniformPigment, CheckeredPigment, ImagePigment, DiffuseBRDF, Material, SpecularBRDF
-from render import OnOffRenderer, FlatRenderer, PathTracer
+from render import OnOffRenderer, FlatRenderer, PathTracer, PointLightRenderer
 
 import click
 
@@ -49,7 +50,7 @@ def cli():
     pass
 
 
-RENDERERS = ["onoff", "flat", "pathtracing"]
+RENDERERS = ["onoff", "flat", "pathtracing", "pointlight"]
 
 
 @click.command("demo")
@@ -106,9 +107,8 @@ RENDERERS = ["onoff", "flat", "pathtracing"]
 )
 def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output, num_of_rays, max_depth, init_state,
          init_seq, samples_per_pixel):
-
     samples_per_side = int(sqrt(samples_per_pixel))
-    if samples_per_side**2 != samples_per_pixel:
+    if samples_per_side ** 2 != samples_per_pixel:
         print(f"Error, the number of samples per pixel ({samples_per_pixel}) must be a perfect square")
         return
 
@@ -129,25 +129,27 @@ def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output
     )
     sphere_material = Material(brdf=DiffuseBRDF(pigment=UniformPigment(Color(0.3, 0.4, 0.8))))
     mirror_material = Material(brdf=SpecularBRDF(pigment=UniformPigment(color=Color(0.6, 0.2, 0.3))))
-    world.shapes.append(
+    world.add_shape(
         Sphere(
             material=sky_material,
             transformation=scaling(Vec(200, 200, 200)) * translation(Vec(0, 0, 0.4))
         )
     )
-    world.shapes.append(
+    world.add_shape(
         Plane(
             material=ground_material,
         )
     )
-    world.shapes.append(Sphere(
+    world.add_shape(Sphere(
         material=sphere_material,
         transformation=translation(Vec(0, 0, 1)),
     ))
-    world.shapes.append(Sphere(
+    world.add_shape(Sphere(
         material=mirror_material,
         transformation=translation(Vec(1, 2.5, 0)),
     ))
+
+    world.add_light(PointLight(position=Point(-30, 30, 30), color=Color(1.0, 1.0, 1.0)))
 
     image = HdrImage(width, height)
     print(f"Generating a {width}×{height} image, with the camera tilted by {angle_deg}°")
@@ -179,6 +181,9 @@ def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output
             num_of_rays=num_of_rays,
             max_depth=max_depth,
         )
+    elif algorithm == "pointlight":
+        print("Using a point-light tracer")
+        renderer = PointLightRenderer(world=world, background_color=BLACK)
     else:
         print(f"Unknown renderer: {algorithm}")
         sys.exit(1)
