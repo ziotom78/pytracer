@@ -117,13 +117,13 @@ class DiffuseBRDF(BRDF):
     def scatter_ray(self, pcg: PCG, incoming_dir: Vec, interaction_point: Point, normal: Normal, depth: int):
         # Cosine-weighted distribution around the z (local) axis
         e1, e2, e3 = create_onb_from_z(normal)
-        r1 = 2.0 * pi * pcg.random_float()
-        r2 = pcg.random_float()
-        r2sqrt = sqrt(r2)
+        cos_theta_sq = pcg.random_float()
+        cos_theta, sin_theta = sqrt(cos_theta_sq), sqrt(1.0 - cos_theta_sq)
+        phi = 2.0 * pi * pcg.random_float()
 
         return Ray(
             origin=interaction_point,
-            dir=e1 * cos(r1) * r2sqrt + e2 * sin(r1) * r2sqrt + e3 * sqrt(1.0 - r2),
+            dir=e1 * cos(phi) * cos_theta + e2 * sin(phi) * cos_theta + e3 * sin_theta,
             tmin=1.0e-3,
             tmax=inf,
             depth=depth,
