@@ -57,3 +57,14 @@ class World:
             closest.normal = closest.normal.normalize()
 
         return closest
+
+    def is_point_visible(self, point: Point, observer_pos: Point):
+        direction = point - observer_pos
+        dir_norm = direction.norm()
+
+        ray = Ray(origin=observer_pos, dir=direction, tmin=1e-2 / dir_norm, tmax=1.0)
+        for shape in self.shapes:
+            if shape.quick_ray_intersection(ray):
+                return False
+
+        return True
