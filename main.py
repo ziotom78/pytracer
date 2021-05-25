@@ -17,6 +17,7 @@
 # IN THE SOFTWARE.
 
 from dataclasses import dataclass
+from time import process_time
 import sys
 
 from hdrimages import HdrImage, Endianness, read_pfm_image
@@ -24,12 +25,12 @@ from camera import OrthogonalCamera, PerspectiveCamera
 from colors import Color, BLACK, WHITE
 from geometry import Point, Vec
 from imagetracer import ImageTracer
-from ray import Ray
-from shapes import Sphere
+from pcg import PCG
+from shapes import Sphere, Plane
 from transformations import translation, scaling, rotation_z
 from world import World
-from materials import UniformPigment, CheckeredPigment, ImagePigment, DiffuseBRDF, Material
-from render import OnOffRenderer, FlatRenderer
+from materials import UniformPigment, CheckeredPigment, ImagePigment, DiffuseBRDF, Material, SpecularBRDF
+from render import OnOffRenderer, FlatRenderer, PathTracer
 
 import click
 
@@ -47,14 +48,14 @@ def cli():
     pass
 
 
-RENDERERS = ["onoff", "flat"]
+RENDERERS = ["onoff", "flat", "pathtracing"]
 
 
 @click.command("demo")
 @click.option("--width", type=int, default=640, help="Width of the image to render")
 @click.option("--height", type=int, default=480, help="Height of the image to render")
 @click.option("--angle-deg", type=float, default=0.0, help="Angle of view")
-@click.option('--algorithm', type=click.Choice(RENDERERS), default="flat")
+@click.option('--algorithm', type=click.Choice(RENDERERS), default="pathtracing")
 @click.option(
     "--pfm-output",
     type=str,
@@ -72,62 +73,74 @@ RENDERERS = ["onoff", "flat"]
     is_flag=True,
     help="Use an orthogonal camera instead of a perspective camera",
 )
-def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output):
+@click.option(
+    "--num-of-rays",
+    type=int,
+    default=10,
+    help="Number of rays departing from each surface point (only applicable with --algorithm=pathtracing)."
+)
+@click.option(
+    "--max-depth",
+    type=int,
+    default=3,
+    help="Maximum allowed ray depth (only applicable with --algorithm=pathtracing)."
+)
+@click.option(
+    "--init-state",
+    type=int,
+    help="Initial seed for the random number generator (positive number).",
+    default=45,
+)
+@click.option(
+    "--init-seq",
+    type=int,
+    help="Identifier of the sequence produced by the random number generator (positive number).",
+    default=54
+)
+def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output, num_of_rays, max_depth, init_state,
+         init_seq):
     # Create a world and populate it with a few shapes
     world = World()
 
-    material1 = Material(
-        brdf=DiffuseBRDF(UniformPigment(Color(0.7, 0.3, 0.2)))
+    sky_material = Material(
+        brdf=DiffuseBRDF(pigment=UniformPigment(Color(0, 0, 0))),
+        emitted_radiance=UniformPigment(Color(1.0, 0.9, 0.5)),
     )
-
-    material2 = Material(
-        brdf=DiffuseBRDF(CheckeredPigment(Color(0.2, 0.7, 0.3), Color(0.3, 0.2, 0.7), num_of_steps=4)),
-    )
-
-    sphere_texture = HdrImage(2, 2)
-    sphere_texture.set_pixel(0, 0, Color(0.1, 0.2, 0.3))
-    sphere_texture.set_pixel(0, 1, Color(0.2, 0.1, 0.3))
-    sphere_texture.set_pixel(1, 0, Color(0.3, 0.2, 0.1))
-    sphere_texture.set_pixel(1, 1, Color(0.3, 0.1, 0.2))
-
-    material3 = Material(
-        brdf=DiffuseBRDF(ImagePigment(sphere_texture))
-    )
-
-    for x in [-0.5, 0.5]:
-        for y in [-0.5, 0.5]:
-            for z in [-0.5, 0.5]:
-                world.add(
-                    Sphere(
-                        transformation=translation(Vec(x, y, z))
-                                       * scaling(Vec(0.1, 0.1, 0.1)),
-                        material=material1,
-                    )
-                )
-
-    # Place two other balls in the bottom/left part of the cube, so
-    # that we can check if there are issues with the orientation of
-    # the image
-    world.add(
-        Sphere(
-            transformation=translation(Vec(0.0, 0.0, -0.5))
-                           * scaling(Vec(0.1, 0.1, 0.1)),
-            material=material2,
+    ground_material = Material(
+        brdf=DiffuseBRDF(
+            pigment=CheckeredPigment(
+                color1=Color(0.3, 0.5, 0.1),
+                color2=Color(0.1, 0.2, 0.5),
+            )
         )
     )
-
-    world.add(
+    sphere_material = Material(brdf=DiffuseBRDF(pigment=UniformPigment(Color(0.3, 0.4, 0.8))))
+    mirror_material = Material(brdf=SpecularBRDF(pigment=UniformPigment(color=Color(0.6, 0.2, 0.3))))
+    world.shapes.append(
         Sphere(
-            transformation=translation(Vec(0.0, 0.5, 0.0)) * scaling(Vec(0.1, 0.1, 0.1)),
-            material=material3,
+            material=sky_material,
+            transformation=scaling(Vec(200, 200, 200)) * translation(Vec(0, 0, 0.4))
         )
     )
+    world.shapes.append(
+        Plane(
+            material=ground_material,
+        )
+    )
+    world.shapes.append(Sphere(
+        material=sphere_material,
+        transformation=translation(Vec(0, 0, 1)),
+    ))
+    world.shapes.append(Sphere(
+        material=mirror_material,
+        transformation=translation(Vec(1, 2.5, 0)),
+    ))
 
     image = HdrImage(width, height)
     print(f"Generating a {width}×{height} image, with the camera tilted by {angle_deg}°")
 
     # Initialize a camera
-    camera_tr = rotation_z(angle_deg=angle_deg) * translation(Vec(-1.0, 0.0, 0.0))
+    camera_tr = rotation_z(angle_deg=angle_deg) * translation(Vec(-1.0, 0.0, 1.0))
     if orthogonal:
         camera = OrthogonalCamera(aspect_ratio=width / height, transformation=camera_tr)
     else:
@@ -145,11 +158,26 @@ def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output
     elif algorithm == "flat":
         print("Using flat renderer")
         renderer = FlatRenderer(world=world, background_color=BLACK)
+    elif algorithm == "pathtracing":
+        print("Using a path tracer")
+        renderer = PathTracer(
+            world=world,
+            pcg=PCG(init_state=init_state, init_seq=init_seq),
+            num_of_rays=num_of_rays,
+            max_depth=max_depth,
+        )
     else:
         print(f"Unknown renderer: {algorithm}")
         sys.exit(1)
 
-    tracer.fire_all_rays(renderer)
+    def print_progress(row, col):
+        print(f"Rendering row {row + 1}/{image.height}\r", end="")
+
+    start_time = process_time()
+    tracer.fire_all_rays(renderer, callback=print_progress)
+    elapsed_time = process_time() - start_time
+
+    print(f"Rendering completed in {elapsed_time:.1f} s")
 
     # Save the HDR image
     with open(pfm_output, "wb") as outf:
@@ -157,7 +185,7 @@ def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output
     print(f"HDR demo image written to {pfm_output}")
 
     # Apply tone-mapping to the image
-    image.normalize_image(factor=0.3)
+    image.normalize_image(factor=1.0)
     image.clamp_image()
 
     # Save the LDR image
