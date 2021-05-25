@@ -60,7 +60,9 @@ class ImageTracer:
         callback.
         """
         last_call_time = process_time()
-        callback(0, 0, **callback_kwargs)
+        if callback:
+            callback(col=0, row=0, **callback_kwargs)
+
         for row in range(self.image.height):
             for col in range(self.image.width):
                 ray = self.fire_ray(col, row)
