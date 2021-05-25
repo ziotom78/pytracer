@@ -73,6 +73,12 @@ class Shape:
             "Shape.ray_intersection is an abstract method and cannot be called directly"
         )
 
+    def quick_ray_intersection(self, ray: Ray) -> bool:
+        """Determine whether a ray hits the shape or not"""
+        raise NotImplementedError(
+            "Shape.quick_ray_intersection is an abstract method and cannot be called directly"
+        )
+
 
 class Sphere(Shape):
     """A 3D unit sphere centered on the origin of the axes"""
@@ -117,6 +123,24 @@ class Sphere(Shape):
             material=self.material,
         )
 
+    def quick_ray_intersection(self, ray: Ray) -> bool:
+        """Quickly checks if a ray intersects the sphere"""
+        inv_ray = ray.transform(self.transformation.inverse())
+        origin_vec = inv_ray.origin.to_vec()
+        a = inv_ray.dir.squared_norm()
+        b = 2.0 * origin_vec.dot(inv_ray.dir)
+        c = origin_vec.squared_norm() - 1.0
+
+        delta = b * b - 4.0 * a * c
+        if delta <= 0.0:
+            return False
+
+        sqrt_delta = sqrt(delta)
+        tmin = (-b - sqrt_delta) / (2.0 * a)
+        tmax = (-b + sqrt_delta) / (2.0 * a)
+
+        return (inv_ray.tmin < tmin < inv_ray.tmax) or (inv_ray.tmin < tmax < inv_ray.tmax)
+
 
 class Plane(Shape):
     """A 3D infinite plane parallel to the x and y axis and passing through the origin."""
@@ -149,3 +173,12 @@ class Plane(Shape):
             ray=ray,
             material=self.material,
         )
+
+    def quick_ray_intersection(self, ray: Ray) -> bool:
+        """Quickly checks if a ray intersects the plane"""
+        inv_ray = ray.transform(self.transformation.inverse())
+        if abs(inv_ray.dir.z) < 1e-5:
+            return False
+
+        t = -inv_ray.origin.z / inv_ray.dir.z
+        return inv_ray.tmin < t < inv_ray.tmax

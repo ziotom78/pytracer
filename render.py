@@ -17,6 +17,7 @@
 # IN THE SOFTWARE.
 
 from colors import Color, WHITE, BLACK
+from geometry import normalized_dot
 from pcg import PCG
 from ray import Ray
 from world import World
@@ -124,3 +125,42 @@ class PathTracer(Renderer):
                 cum_radiance += hit_color * new_radiance
 
         return emitted_radiance + cum_radiance * (1.0 / self.num_of_rays)
+
+
+class PointLightRenderer(Renderer):
+    """A simple point-light renderer
+
+    This renderer is similar to what POV-Ray provides by default.
+    """
+
+    def __init__(self, world: World, background_color: Color = BLACK, ambient_color: Color = Color(0.1, 0.1, 0.1)):
+        super().__init__(world, background_color)
+        self.ambient_color = ambient_color
+
+    def __call__(self, ray: Ray) -> Color:
+        hit_record = self.world.ray_intersection(ray)
+        if not hit_record:
+            return self.background_color
+
+        hit_material = hit_record.material
+
+        result_color = self.ambient_color
+        for cur_light in self.world.point_lights:
+            if self.world.is_point_visible(point = cur_light.position, observer_pos=hit_record.world_point):
+                distance_vec = hit_record.world_point - cur_light.position
+                distance = distance_vec.norm()
+                in_dir = distance_vec * (1.0 / distance)
+                cos_theta = max(0.0, normalized_dot(-ray.dir, hit_record.normal))
+
+                distance_factor = (cur_light.linear_radius / distance)**2 if (cur_light.linear_radius > 0) else 1.0
+
+                emitted_color = hit_material.emitted_radiance.get_color(hit_record.surface_point)
+                brdf_color = hit_material.brdf.eval(
+                    normal=hit_record.normal,
+                    in_dir=in_dir,
+                    out_dir=-ray.dir,
+                    uv=hit_record.surface_point,
+                )
+                result_color += (emitted_color + brdf_color) * cur_light.color * cos_theta * distance_factor
+
+        return result_color

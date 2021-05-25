@@ -561,6 +561,30 @@ class TestImageTracer(unittest.TestCase):
             for col in range(self.image.width):
                 assert self.image.get_pixel(col, row) == Color(1.0, 2.0, 3.0)
 
+    def test_antialiasing(self):
+        num_of_rays = 0
+        small_image = HdrImage(width=1, height=1)
+        camera = OrthogonalCamera(aspect_ratio=1)
+        tracer = ImageTracer(small_image, camera, samples_per_side=10, pcg=PCG())
+
+        def trace_ray(ray: Ray) -> Color:
+            nonlocal num_of_rays
+            point = ray.at(1)
+
+            # Check that all the rays intersect the screen within the region [−1, 1] × [−1, 1]
+            assert pytest.approx(0.0) == point.x
+            assert -1.0 <= point.y <= 1.0
+            assert -1.0 <= point.z <= 1.0
+
+            num_of_rays += 1
+
+            return Color(0.0, 0.0, 0.0)
+
+        tracer.fire_all_rays(trace_ray)
+
+        # Check that the number of rays that were fired is what we expect (10²)
+        assert num_of_rays == 100
+
 
 class TestSphere(unittest.TestCase):
     def testHit(self):
@@ -779,8 +803,8 @@ class TestWorld(unittest.TestCase):
 
         sphere1 = Sphere(transformation=translation(VEC_X * 2))
         sphere2 = Sphere(transformation=translation(VEC_X * 8))
-        world.add(sphere1)
-        world.add(sphere2)
+        world.add_shape(sphere1)
+        world.add_shape(sphere2)
 
         intersection1 = world.ray_intersection(Ray(
             origin=Point(0.0, 0.0, 0.0), dir=VEC_X
@@ -794,6 +818,27 @@ class TestWorld(unittest.TestCase):
 
         assert intersection2
         assert intersection2.world_point.is_close(Point(9.0, 0.0, 0.0))
+
+    def test_quick_ray_intersection(self):
+        world = World()
+
+        sphere1 = Sphere(transformation=translation(VEC_X * 2))
+        sphere2 = Sphere(transformation=translation(VEC_X * 8))
+        world.add_shape(sphere1)
+        world.add_shape(sphere2)
+
+        assert not world.is_point_visible(point=Point(10.0, 0.0, 0.0),
+                                          observer_pos=Point(0.0, 0.0, 0.0))
+        assert not world.is_point_visible(point=Point(5.0, 0.0, 0.0),
+                                          observer_pos=Point(0.0, 0.0, 0.0))
+        assert world.is_point_visible(point=Point(5.0, 0.0, 0.0),
+                                      observer_pos=Point(4.0, 0.0, 0.0))
+        assert world.is_point_visible(point=Point(0.5, 0.0, 0.0),
+                                      observer_pos=Point(0.0, 0.0, 0.0))
+        assert world.is_point_visible(point=Point(0.0, 10.0, 0.0),
+                                      observer_pos=Point(0.0, 0.0, 0.0))
+        assert world.is_point_visible(point=Point(0.0, 0.0, 10.0),
+                                      observer_pos=Point(0.0, 0.0, 0.0))
 
 
 class TestPCG(unittest.TestCase):
@@ -870,7 +915,7 @@ class TestRenderers(unittest.TestCase):
         camera = OrthogonalCamera()
         tracer = ImageTracer(image=image, camera=camera)
         world = World()
-        world.add(sphere)
+        world.add_shape(sphere)
         renderer = OnOffRenderer(world=world)
         tracer.fire_all_rays(renderer)
 
@@ -894,7 +939,7 @@ class TestRenderers(unittest.TestCase):
         camera = OrthogonalCamera()
         tracer = ImageTracer(image=image, camera=camera)
         world = World()
-        world.add(sphere)
+        world.add_shape(sphere)
         renderer = FlatRenderer(world=world)
         tracer.fire_all_rays(renderer)
 
@@ -949,7 +994,7 @@ class TestPathTracer(unittest.TestCase):
                 emitted_radiance=UniformPigment(Color(1.0, 1.0, 1.0) * emitted_radiance),
             )
 
-            world.add(Sphere(material=enclosure_material))
+            world.add_shape(Sphere(material=enclosure_material))
 
             path_tracer = PathTracer(pcg=pcg, num_of_rays=1, world=world, max_depth=100, russian_roulette_limit=101)
 

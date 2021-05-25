@@ -20,7 +20,7 @@ from dataclasses import dataclass
 from math import floor, pi, sqrt, sin, cos, inf, acos
 
 from colors import Color, BLACK, WHITE
-from geometry import Normal, Vec, Vec2d, create_onb_from_z, Point
+from geometry import Normal, Vec, Vec2d, create_onb_from_z, Point, normalized_dot
 from hdrimages import HdrImage
 from pcg import PCG
 from ray import Ray
@@ -140,8 +140,8 @@ class SpecularBRDF(BRDF):
     def eval(self, normal: Normal, in_dir: Vec, out_dir: Vec, uv: Vec2d) -> Color:
         # We provide this implementation for reference, but we are not going to use it (neither in the
         # path tracer nor in the point-light tracer)
-        theta_in = acos(normal.to_vec().dot(in_dir))
-        theta_out = acos(normal.to_vec().dot(out_dir))
+        theta_in = acos(normalized_dot(normal, in_dir))
+        theta_out = acos(normalized_dot(normal, out_dir))
 
         if abs(theta_in - theta_out) < self.threshold_angle_rad:
             return self.pigment.get_color(uv)

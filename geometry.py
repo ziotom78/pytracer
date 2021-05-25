@@ -245,3 +245,17 @@ def create_onb_from_z(normal: Union[Vec, Normal]) -> Tuple[Vec, Vec, Vec]:
     e2 = Vec(b, sign + normal.y * normal.y * a, -normal.y)
 
     return e1, e2, Vec(normal.x, normal.y, normal.z)
+
+
+def normalized_dot(v1 : Union[Vec, Normal], v2: Union[Vec, Normal]) -> float:
+    """Apply the dot product to the two arguments after having normalized them.
+
+    The result is the cosine of the angle between the two vectors/normals."""
+
+    # This is not terribly efficient, but we're writing in Python. You should use your
+    # language's facilities (e.g., C++ templates) to make this function work seamlessly
+    # with vectors *and* normals.
+    v1_vec = Vec(v1.x, v1.y, v1.z).normalize()
+    v2_vec = Vec(v2.x, v2.y, v2.z).normalize()
+
+    return v1_vec.dot(v2_vec)
