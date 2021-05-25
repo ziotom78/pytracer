@@ -561,6 +561,30 @@ class TestImageTracer(unittest.TestCase):
             for col in range(self.image.width):
                 assert self.image.get_pixel(col, row) == Color(1.0, 2.0, 3.0)
 
+    def test_antialiasing(self):
+        num_of_rays = 0
+        small_image = HdrImage(width=1, height=1)
+        camera = OrthogonalCamera(aspect_ratio=1)
+        tracer = ImageTracer(small_image, camera, samples_per_side=10, pcg=PCG())
+
+        def trace_ray(ray: Ray) -> Color:
+            nonlocal num_of_rays
+            point = ray.at(1)
+
+            # Check that all the rays intersect the screen within the region [−1, 1] × [−1, 1]
+            assert pytest.approx(0.0) == point.x
+            assert -1.0 <= point.y <= 1.0
+            assert -1.0 <= point.z <= 1.0
+
+            num_of_rays += 1
+
+            return Color(0.0, 0.0, 0.0)
+
+        tracer.fire_all_rays(trace_ray)
+
+        # Check that the number of rays that were fired is what we expect (10²)
+        assert num_of_rays == 100
+
 
 class TestSphere(unittest.TestCase):
     def testHit(self):
