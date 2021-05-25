@@ -15,6 +15,7 @@
 # SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
+from time import process_time
 
 from hdrimages import HdrImage
 from camera import Camera
@@ -23,6 +24,7 @@ from camera import Camera
 class ImageTracer:
     """Trace an image by shooting light rays through each of its pixels
     """
+
     def __init__(self, image: HdrImage, camera: Camera):
         """Initialize an ImageTracer object
 
@@ -43,14 +45,21 @@ class ImageTracer:
         v = 1.0 - (row + v_pixel) / self.image.height
         return self.camera.fire_ray(u, v)
 
-    def fire_all_rays(self, func):
+    def fire_all_rays(self, func, callback=None, callback_time_s: float = 2.0, **callback_kwargs):
         """Shoot several light rays crossing each of the pixels in the image
 
         For each pixel in the :class:`.HdrImage` object fire one ray, and pass it to the function `func`, which
         must accept a :class:`.Ray` as its only parameter and must return a :class:`.Color` instance telling the
         color to assign to that pixel in the image."""
+        last_call_time = process_time()
+        callback(0, 0, **callback_kwargs)
         for row in range(self.image.height):
             for col in range(self.image.width):
                 ray = self.fire_ray(col, row)
                 color = func(ray)
                 self.image.set_pixel(col, row, color)
+
+                current_time = process_time()
+                if callback and (current_time - last_call_time > callback_time_s):
+                    callback(row, col, **callback_kwargs)
+                    last_call_time = current_time
