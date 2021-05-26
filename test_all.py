@@ -988,7 +988,7 @@ class TestPathTracer(unittest.TestCase):
             world = World()
 
             emitted_radiance = pcg.random_float()
-            reflectance = pcg.random_float()
+            reflectance = pcg.random_float() * 0.9  # Be sure to pick a reflectance that's not too close to 1
             enclosure_material = Material(
                 brdf=DiffuseBRDF(pigment=UniformPigment(Color(1.0, 1.0, 1.0) * reflectance)),
                 emitted_radiance=UniformPigment(Color(1.0, 1.0, 1.0) * emitted_radiance),
