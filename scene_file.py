@@ -3,7 +3,7 @@ from copy import copy
 from dataclasses import dataclass, field
 from enum import Enum
 from io import StringIO
-from typing import Dict, Any, Union, List, Tuple
+from typing import Dict, Union, List, Tuple
 
 from camera import Camera, PerspectiveCamera, OrthogonalCamera
 from colors import Color
@@ -12,7 +12,6 @@ from hdrimages import read_pfm_image
 from materials import Material, BRDF, Pigment, UniformPigment, CheckeredPigment, ImagePigment, DiffuseBRDF, SpecularBRDF
 from shapes import Shape, Sphere, Plane
 from transformations import translation, rotation_x, rotation_y, rotation_z, scaling, Transformation
-from world import World
 
 WHITESPACE = " \t\n\r"
 SYMBOLS = "()<>[],*"
