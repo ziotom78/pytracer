@@ -107,12 +107,11 @@ class BRDF:
 class DiffuseBRDF(BRDF):
     """A class representing an ideal diffuse BRDF (also called «Lambertian»)"""
 
-    def __init__(self, pigment: Pigment = UniformPigment(WHITE), reflectance: float = 1.0):
+    def __init__(self, pigment: Pigment = UniformPigment(WHITE)):
         super().__init__(pigment)
-        self.reflectance = reflectance
 
     def eval(self, normal: Normal, in_dir: Vec, out_dir: Vec, uv: Vec2d) -> Color:
-        return self.pigment.get_color(uv) * (self.reflectance / pi)
+        return self.pigment.get_color(uv) * (1.0 / pi)
 
     def scatter_ray(self, pcg: PCG, incoming_dir: Vec, interaction_point: Point, normal: Normal, depth: int):
         # Cosine-weighted distribution around the z (local) axis
