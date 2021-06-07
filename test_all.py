@@ -25,7 +25,7 @@ from copy import deepcopy
 from math import pi, sqrt
 
 import unittest
-from io import BytesIO
+from io import BytesIO, StringIO
 from colors import Color, BLACK, WHITE
 from hdrimages import (
     HdrImage,
@@ -37,6 +37,8 @@ from hdrimages import (
     _parse_endianness,
 )
 from geometry import Vec, Point, Normal, VEC_X, VEC_Y, VEC_Z, create_onb_from_z
+from scene_file import InputStream, KeywordEnum, Token, KeywordToken, IdentifierToken, SymbolToken, LiteralNumberToken, \
+    StringToken
 from transformations import (
     Transformation,
     translation,
@@ -223,7 +225,6 @@ class TestHdrImage(unittest.TestCase):
         img.set_pixel(0, 0, Color(0.5e1, 1.0e1, 1.5e1))
         img.set_pixel(1, 0, Color(0.5e3, 1.0e3, 1.5e3))
 
-        print(img.average_luminosity(delta=0.0))
         assert pytest.approx(100.0) == img.average_luminosity(delta=0.0)
 
     def test_normalize_image(self):
@@ -1005,6 +1006,101 @@ class TestPathTracer(unittest.TestCase):
             assert pytest.approx(expected, 1e-3) == color.r
             assert pytest.approx(expected, 1e-3) == color.g
             assert pytest.approx(expected, 1e-3) == color.b
+
+
+def _assert_is_keyword(token: Token, keyword: KeywordEnum):
+    assert isinstance(token, KeywordToken)
+    assert token.keyword == keyword, f"Token '{token}' is not equal to keyword '{keyword}'"
+
+
+def _assert_is_identifier(token: Token, identifier: str):
+    assert isinstance(token, IdentifierToken)
+    assert token.identifier == identifier, f"expecting identifier '{identifier}' instead of '{token}'"
+
+
+def _assert_is_symbol(token: Token, symbol: str):
+    assert isinstance(token, SymbolToken)
+    assert token.symbol == symbol, f"expecting symbol '{symbol}' instead of '{token}'"
+
+
+def _assert_is_number(token: Token, number: float):
+    assert isinstance(token, LiteralNumberToken)
+    assert token.value == number, f"Token '{token}' is not equal to number '{number}'"
+
+
+def _assert_is_string(token: Token, s: str):
+    assert isinstance(token, StringToken)
+    assert token.string == s, f"Token '{token}' is not equal to string '{s}'"
+
+
+class TestSceneFile(unittest.TestCase):
+    def test_input_file(self):
+        stream = InputStream(StringIO("abc   \nd\nef"))
+
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 1
+
+        assert stream.read_char() == "a"
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 2
+
+        stream.unread_char("A")
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 1
+
+        assert stream.read_char() == "A"
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 2
+
+        assert stream.read_char() == "b"
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 3
+
+        assert stream.read_char() == "c"
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 4
+
+        stream.skip_whitespaces()
+
+        assert stream.read_char() == "d"
+        assert stream.location.line_num == 2
+        assert stream.location.col_num == 2
+
+        assert stream.read_char() == "\n"
+        assert stream.location.line_num == 3
+        assert stream.location.col_num == 1
+
+        assert stream.read_char() == "e"
+        assert stream.location.line_num == 3
+        assert stream.location.col_num == 2
+
+        assert stream.read_char() == "f"
+        assert stream.location.line_num == 3
+        assert stream.location.col_num == 3
+
+        assert stream.read_char() == ""
+
+    def test_lexer(self):
+        stream = StringIO("""
+        # This is a comment
+        new material sky_material(
+            diffuse(image("my file.pfm")),
+            <5.0, 500.0, 300.0>
+        )
+    """)
+
+        input_file = InputStream(stream)
+
+        _assert_is_keyword(input_file.read_token(), KeywordEnum.NEW)
+        _assert_is_keyword(input_file.read_token(), KeywordEnum.MATERIAL)
+        _assert_is_identifier(input_file.read_token(), "sky_material")
+        _assert_is_symbol(input_file.read_token(), "(")
+        _assert_is_keyword(input_file.read_token(), KeywordEnum.DIFFUSE)
+        _assert_is_symbol(input_file.read_token(), "(")
+        _assert_is_keyword(input_file.read_token(), KeywordEnum.IMAGE)
+        _assert_is_symbol(input_file.read_token(), "(")
+        _assert_is_string(input_file.read_token(), "my file.pfm")
+        _assert_is_symbol(input_file.read_token(), ")")
 
 
 if __name__ == "__main__":
