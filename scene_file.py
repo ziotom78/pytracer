@@ -212,10 +212,15 @@ class InputStream:
         self.saved_char = ch
         self.location = copy(self.saved_location)
 
-    def skip_whitespaces(self):
-        """Keep reading characters until a non-whitespace character is found"""
+    def skip_whitespaces_and_comments(self):
+        """Keep reading characters until a non-whitespace/non-comment character is found"""
         ch = self.read_char()
-        while ch in WHITESPACE:
+        while ch in WHITESPACE or ch == "#":
+            if ch == "#":
+                # It's a comment! Keep reading until the end of the line (include the case "", the end-of-file)
+                while self.read_char() not in ["\r", "\n", ""]:
+                    pass
+
             ch = self.read_char()
             if ch == "":
                 return
@@ -287,7 +292,7 @@ class InputStream:
             self.saved_token = None
             return result
 
-        self.skip_whitespaces()
+        self.skip_whitespaces_and_comments()
 
         # At this point we're sure that ch does *not* contain a whitespace character
         ch = self.read_char()
@@ -295,26 +300,9 @@ class InputStream:
             # No more characters in the file, so return a StopToken
             return StopToken(location=self.location)
 
-        # However, if it signals the start of a comment, we need to treat this condition as if it were a whitespace
-        if ch == "#":
-            # Keep reading until the end of the line (include the case "", which means end-of-file)
-            while self.read_char() not in ["\r", "\n", ""]:
-                pass
-
-            # Now skip all the whitespaces (including the characters '\r' and '\n')
-            self.skip_whitespaces()
-
-            # Note that self.skip_whitespaces() reads the first non-whitespace and then puts it back
-            # using self.unread_char()
-        else:
-            self.unread_char(ch)
-
         # At this point we must check what kind of token begins with the "ch" character (which has been
         # put back in the stream with self.unread_char). First, we save the position in the stream
         token_location = copy(self.location)
-
-        # Now we read again ch (which was put back using self.unread_char)
-        ch = self.read_char()
 
         if ch in SYMBOLS:
             # One-character symbol, like '(' or ','
@@ -639,7 +627,7 @@ def test_input_file():
     assert stream.location.line_num == 1
     assert stream.location.col_num == 4
 
-    stream.skip_whitespaces()
+    stream.skip_whitespaces_and_comments()
 
     assert stream.read_char() == "d"
     assert stream.location.line_num == 2

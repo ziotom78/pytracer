@@ -1060,7 +1060,7 @@ class TestSceneFile(unittest.TestCase):
         assert stream.location.line_num == 1
         assert stream.location.col_num == 4
 
-        stream.skip_whitespaces()
+        stream.skip_whitespaces_and_comments()
 
         assert stream.read_char() == "d"
         assert stream.location.line_num == 2
@@ -1083,11 +1083,12 @@ class TestSceneFile(unittest.TestCase):
     def test_lexer(self):
         stream = StringIO("""
         # This is a comment
+        # This is another comment
         new material sky_material(
             diffuse(image("my file.pfm")),
             <5.0, 500.0, 300.0>
-        )
-    """)
+        ) # Comment at the end of the line
+""")
 
         input_file = InputStream(stream)
 
