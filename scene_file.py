@@ -147,7 +147,7 @@ class SymbolToken(Token):
 
 
 @dataclass
-class ParserError(BaseException):
+class GrammarError(BaseException):
     """An error found by the lexer/parser while reading a scene file
 
     The fields of this type are the following:
@@ -232,7 +232,7 @@ class InputStream:
                 break
 
             if ch == "":
-                raise ParserError(token_location, "unterminated string")
+                raise GrammarError(token_location, "unterminated string")
 
             token += ch
 
@@ -252,7 +252,7 @@ class InputStream:
         try:
             value = float(token)
         except ValueError:
-            raise ParserError(token_location, f"'{token}' is an invalid floating-point number")
+            raise GrammarError(token_location, f"'{token}' is an invalid floating-point number")
 
         return LiteralNumberToken(token_location, value)
 
@@ -330,7 +330,7 @@ class InputStream:
             return self._parse_keyword_or_identifier_token(first_char=ch, token_location=token_location)
         else:
             # We got some weird character, like '@` or `&`
-            raise ParserError(self.location, f"Invalid character {ch}")
+            raise GrammarError(self.location, f"Invalid character {ch}")
 
     def unread_token(self, token: Token):
         """Make as if `token` were never read from `input_file`"""
@@ -351,7 +351,7 @@ def expect_symbol(input_file: InputStream, symbol: str) -> SymbolToken:
     """Read a token from `input_file` and check that it matches `symbol`."""
     token = input_file.read_token()
     if not isinstance(token, SymbolToken) or token.symbol != symbol:
-        raise ParserError(token.location, f"got '{token}' instead of '{symbol}'")
+        raise GrammarError(token.location, f"got '{token}' instead of '{symbol}'")
 
 
 def expect_keywords(input_file: InputStream, keywords: List[KeywordEnum]) -> KeywordEnum:
@@ -360,10 +360,10 @@ def expect_keywords(input_file: InputStream, keywords: List[KeywordEnum]) -> Key
     Return the keyword as a :class:`.KeywordEnum` object."""
     token = input_file.read_token()
     if not isinstance(token, KeywordToken):
-        raise ParserError(token.location, f"expected a keyword instead of '{token}'")
+        raise GrammarError(token.location, f"expected a keyword instead of '{token}'")
 
     if not token.keyword in keywords:
-        raise ParserError(token.location,
+        raise GrammarError(token.location,
                            f"expected one of the keywords {','.join([str(x) for x in keywords])} instead of '{token}'")
 
     return token.keyword
@@ -379,10 +379,10 @@ def expect_number(input_file: InputStream, scene: Scene) -> float:
     elif isinstance(token, IdentifierToken):
         variable_name = token.identifier
         if variable_name not in scene.float_variables:
-            raise ParserError(token.location, f"unknown variable '{token}'")
+            raise GrammarError(token.location, f"unknown variable '{token}'")
         return scene.float_variables[variable_name]
 
-    raise ParserError(token.location, f"got '{token}' instead of a number")
+    raise GrammarError(token.location, f"got '{token}' instead of a number")
 
 
 def expect_string(input_file: InputStream) -> str:
@@ -391,7 +391,7 @@ def expect_string(input_file: InputStream) -> str:
     Return the value of the string (a ``str``)."""
     token = input_file.read_token()
     if not isinstance(token, StringToken):
-        raise ParserError(token.location, f"got '{token}' instead of a string")
+        raise GrammarError(token.location, f"got '{token}' instead of a string")
 
     return token.string
 
@@ -402,7 +402,7 @@ def expect_identifier(input_file: InputStream) -> str:
     Return the name of the identifier."""
     token = input_file.read_token()
     if not isinstance(token, IdentifierToken):
-        raise ParserError(token.location, f"got '{token}' instead of an identifier")
+        raise GrammarError(token.location, f"got '{token}' instead of an identifier")
 
     return token.identifier
 
@@ -536,7 +536,7 @@ def parse_sphere(input_file: InputStream, scene: Scene) -> Sphere:
     material_name = expect_identifier(input_file)
     if material_name not in scene.materials.keys():
         # We raise the exception here because input_file is pointing to the end of the wrong identifier
-        raise ParserError(input_file.location, f"unknown material {material_name}")
+        raise GrammarError(input_file.location, f"unknown material {material_name}")
 
     expect_symbol(input_file, ",")
     transformation = parse_transformation(input_file, scene)
@@ -551,7 +551,7 @@ def parse_plane(input_file: InputStream, scene: Scene) -> Plane:
     material_name = expect_identifier(input_file)
     if material_name not in scene.materials.keys():
         # We raise the exception here because input_file is pointing to the end of the wrong identifier
-        raise ParserError(input_file.location, f"unknown material {material_name}")
+        raise GrammarError(input_file.location, f"unknown material {material_name}")
 
     expect_symbol(input_file, ",")
     transformation = parse_transformation(input_file, scene)
@@ -588,7 +588,7 @@ def parse_scene(input_file: InputStream):
             break
 
         if not isinstance(what, KeywordToken):
-            raise ParserError(what.location, f"expected a keyword instead of '{what}'")
+            raise GrammarError(what.location, f"expected a keyword instead of '{what}'")
 
         if what.keyword == KeywordEnum.FLOAT:
             variable_name = expect_identifier(input_file)
@@ -603,7 +603,7 @@ def parse_scene(input_file: InputStream):
             scene.objects.append(parse_plane(input_file, scene))
         elif what.keyword == KeywordEnum.CAMERA:
             if scene.camera:
-                raise ParserError(what.location, "You cannot define more than one camera")
+                raise GrammarError(what.location, "You cannot define more than one camera")
 
             scene.camera = parse_camera(input_file, scene)
         elif what.keyword == KeywordEnum.MATERIAL:
@@ -797,7 +797,7 @@ def test_parser_undefined_material():
     try:
         _ = parse_scene(input_file=InputStream(stream))
         assert False, "the code did not throw an exception"
-    except ParserError:
+    except GrammarError:
         pass
 
 
@@ -810,7 +810,7 @@ def test_parser_double_camera():
     try:
         _ = parse_scene(input_file=InputStream(stream))
         assert False, "the code did not throw an exception"
-    except ParserError:
+    except GrammarError:
         pass
 
 
@@ -819,7 +819,7 @@ def main():
     test_lexer()
     try:
         test_parser()
-    except ParserError as e:
+    except GrammarError as e:
         print(f"{e.file_name}:{e.line_num}:{e.col_num}: {e.message}")
 
     test_parser_double_camera()
