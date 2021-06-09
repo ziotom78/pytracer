@@ -167,10 +167,6 @@ class InputStream:
     This class implements a wrapper around a stream, with the following additional capabilities:
     - It tracks the line number and column number;
     - It permits to "un-read" characters and tokens.
-
-    The class keeps the file name and the line and column numbers in fields named `file_name`, `line_num`,
-    and `col_num`, which are the same as the :class:`.Token` class. This let us to use duck typing and
-    either pass a InputFile or a Token to the function :func:`.parser_error`.
     """
 
     def __init__(self, stream, file_name="", tabulations=8):
@@ -236,7 +232,7 @@ class InputStream:
                 break
 
             if ch == "":
-                raise parser_error(self, "unterminated string")
+                raise ParserError(token_location, "unterminated string")
 
             token += ch
 
@@ -256,7 +252,7 @@ class InputStream:
         try:
             value = float(token)
         except ValueError:
-            raise parser_error(token_location, f"'{token}' is an invalid floating-point number")
+            raise ParserError(token_location, f"'{token}' is an invalid floating-point number")
 
         return LiteralNumberToken(token_location, value)
 
@@ -334,18 +330,12 @@ class InputStream:
             return self._parse_keyword_or_identifier_token(first_char=ch, token_location=token_location)
         else:
             # We got some weird character, like '@` or `&`
-            raise parser_error(self, f"Invalid character {ch}")
+            raise ParserError(self.location, f"Invalid character {ch}")
 
     def unread_token(self, token: Token):
         """Make as if `token` were never read from `input_file`"""
         assert not self.saved_token
         self.saved_token = token
-
-
-def parser_error(location: SourceLocation, message: str) -> ParserError:
-    """Build a :class:`.ParserError` object out of a :class:`.InputFile` object and a message"""
-    return ParserError(location=location,
-                       message=message)
 
 
 @dataclass
@@ -361,7 +351,7 @@ def expect_symbol(input_file: InputStream, symbol: str) -> SymbolToken:
     """Read a token from `input_file` and check that it matches `symbol`."""
     token = input_file.read_token()
     if not isinstance(token, SymbolToken) or token.symbol != symbol:
-        raise parser_error(token, f"got '{token}' instead of '{symbol}'")
+        raise ParserError(token.location, f"got '{token}' instead of '{symbol}'")
 
 
 def expect_keywords(input_file: InputStream, keywords: List[KeywordEnum]) -> KeywordEnum:
@@ -370,10 +360,10 @@ def expect_keywords(input_file: InputStream, keywords: List[KeywordEnum]) -> Key
     Return the keyword as a :class:`.KeywordEnum` object."""
     token = input_file.read_token()
     if not isinstance(token, KeywordToken):
-        raise parser_error(token, f"expected a keyword instead of '{token}'")
+        raise ParserError(token.location, f"expected a keyword instead of '{token}'")
 
     if not token.keyword in keywords:
-        raise parser_error(token,
+        raise ParserError(token.location,
                            f"expected one of the keywords {','.join([str(x) for x in keywords])} instead of '{token}'")
 
     return token.keyword
@@ -389,10 +379,10 @@ def expect_number(input_file: InputStream, scene: Scene) -> float:
     elif isinstance(token, IdentifierToken):
         variable_name = token.identifier
         if variable_name not in scene.float_variables:
-            raise parser_error(token, f"unknown variable '{token}'")
+            raise ParserError(token.location, f"unknown variable '{token}'")
         return scene.float_variables[variable_name]
 
-    raise parser_error(token, f"got '{token}' instead of a number")
+    raise ParserError(token.location, f"got '{token}' instead of a number")
 
 
 def expect_string(input_file: InputStream) -> str:
@@ -401,7 +391,7 @@ def expect_string(input_file: InputStream) -> str:
     Return the value of the string (a ``str``)."""
     token = input_file.read_token()
     if not isinstance(token, StringToken):
-        raise parser_error(token, f"got '{token}' instead of a string")
+        raise ParserError(token.location, f"got '{token}' instead of a string")
 
     return token.string
 
@@ -412,7 +402,7 @@ def expect_identifier(input_file: InputStream) -> str:
     Return the name of the identifier."""
     token = input_file.read_token()
     if not isinstance(token, IdentifierToken):
-        raise parser_error(token, f"got '{token}' instead of an identifier")
+        raise ParserError(token.location, f"got '{token}' instead of an identifier")
 
     return token.identifier
 
@@ -546,7 +536,7 @@ def parse_sphere(input_file: InputStream, scene: Scene) -> Sphere:
     material_name = expect_identifier(input_file)
     if material_name not in scene.materials.keys():
         # We raise the exception here because input_file is pointing to the end of the wrong identifier
-        raise parser_error(input_file, f"unknown material {material_name}")
+        raise ParserError(input_file.location, f"unknown material {material_name}")
 
     expect_symbol(input_file, ",")
     transformation = parse_transformation(input_file, scene)
@@ -561,7 +551,7 @@ def parse_plane(input_file: InputStream, scene: Scene) -> Plane:
     material_name = expect_identifier(input_file)
     if material_name not in scene.materials.keys():
         # We raise the exception here because input_file is pointing to the end of the wrong identifier
-        raise parser_error(input_file, f"unknown material {material_name}")
+        raise ParserError(input_file.location, f"unknown material {material_name}")
 
     expect_symbol(input_file, ",")
     transformation = parse_transformation(input_file, scene)
@@ -598,7 +588,7 @@ def parse_scene(input_file: InputStream):
             break
 
         if not isinstance(what, KeywordToken):
-            raise parser_error(what, f"expected a keyword instead of '{what}'")
+            raise ParserError(what.location, f"expected a keyword instead of '{what}'")
 
         if what.keyword == KeywordEnum.FLOAT:
             variable_name = expect_identifier(input_file)
@@ -613,7 +603,7 @@ def parse_scene(input_file: InputStream):
             scene.objects.append(parse_plane(input_file, scene))
         elif what.keyword == KeywordEnum.CAMERA:
             if scene.camera:
-                raise parser_error(what, "You cannot define more than one camera")
+                raise ParserError(what.location, "You cannot define more than one camera")
 
             scene.camera = parse_camera(input_file, scene)
         elif what.keyword == KeywordEnum.MATERIAL:
