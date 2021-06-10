@@ -38,7 +38,7 @@ from hdrimages import (
 )
 from geometry import Vec, Point, Normal, VEC_X, VEC_Y, VEC_Z, create_onb_from_z
 from scene_file import InputStream, KeywordEnum, Token, KeywordToken, IdentifierToken, SymbolToken, LiteralNumberToken, \
-    StringToken
+    StringToken, parse_scene, GrammarError
 from transformations import (
     Transformation,
     translation,
@@ -55,7 +55,7 @@ from shapes import Sphere, Plane
 from misc import are_close
 from world import World
 from pcg import PCG
-from materials import UniformPigment, ImagePigment, CheckeredPigment, DiffuseBRDF, Material
+from materials import UniformPigment, ImagePigment, CheckeredPigment, DiffuseBRDF, Material, SpecularBRDF
 from render import OnOffRenderer, FlatRenderer, PathTracer
 
 import pytest
@@ -1102,6 +1102,118 @@ class TestSceneFile(unittest.TestCase):
         _assert_is_symbol(input_file.read_token(), "(")
         _assert_is_string(input_file.read_token(), "my file.pfm")
         _assert_is_symbol(input_file.read_token(), ")")
+
+    def test_parser(self):
+        stream = StringIO("""
+        float clock(150)
+    
+        material sky_material(
+            diffuse(uniform(<0, 0, 0>)),
+            uniform(<0.7, 0.5, 1>)
+        )
+    
+        # Here is a comment
+    
+        material ground_material(
+            diffuse(checkered(<0.3, 0.5, 0.1>,
+                              <0.1, 0.2, 0.5>, 4)),
+            uniform(<0, 0, 0>)
+        )
+    
+        material sphere_material(
+            specular(uniform(<0.5, 0.5, 0.5>)),
+            uniform(<0, 0, 0>)
+        )
+    
+        plane (sky_material, translation([0, 0, 100]) * rotation_y(clock))
+        plane (ground_material, identity)
+    
+        sphere(sphere_material, translation([0, 0, 1]))
+    
+        camera(perspective, rotation_z(30) * translation([-4, 0, 1]), 1.0, 2.0)
+        """)
+
+        scene = parse_scene(input_file=InputStream(stream))
+
+        # Check that the float variables are ok
+
+        assert len(scene.float_variables) == 1
+        assert "clock" in scene.float_variables.keys()
+        assert scene.float_variables["clock"] == 150.0
+
+        # Check that the materials are ok
+
+        assert len(scene.materials) == 3
+        assert "sphere_material" in scene.materials
+        assert "sky_material" in scene.materials
+        assert "ground_material" in scene.materials
+
+        sphere_material = scene.materials["sphere_material"]
+        sky_material = scene.materials["sky_material"]
+        ground_material = scene.materials["ground_material"]
+
+        assert isinstance(sky_material.brdf, DiffuseBRDF)
+        assert isinstance(sky_material.brdf.pigment, UniformPigment)
+        assert sky_material.brdf.pigment.color.is_close(Color(0, 0, 0))
+
+        assert isinstance(ground_material.brdf, DiffuseBRDF)
+        assert isinstance(ground_material.brdf.pigment, CheckeredPigment)
+        assert ground_material.brdf.pigment.color1.is_close(Color(0.3, 0.5, 0.1))
+        assert ground_material.brdf.pigment.color2.is_close(Color(0.1, 0.2, 0.5))
+        assert ground_material.brdf.pigment.num_of_steps == 4
+
+        assert isinstance(sphere_material.brdf, SpecularBRDF)
+        assert isinstance(sphere_material.brdf.pigment, UniformPigment)
+        assert sphere_material.brdf.pigment.color.is_close(Color(0.5, 0.5, 0.5))
+
+        assert isinstance(sky_material.emitted_radiance, UniformPigment)
+        assert sky_material.emitted_radiance.color.is_close(Color(0.7, 0.5, 1.0))
+        assert isinstance(ground_material.emitted_radiance, UniformPigment)
+        assert ground_material.emitted_radiance.color.is_close(Color(0, 0, 0))
+        assert isinstance(sphere_material.emitted_radiance, UniformPigment)
+        assert sphere_material.emitted_radiance.color.is_close(Color(0, 0, 0))
+
+        # Check that the shapes are ok
+
+        assert len(scene.world.shapes) == 3
+        assert isinstance(scene.world.shapes[0], Plane)
+        assert scene.world.shapes[0].transformation.is_close(translation(Vec(0, 0, 100)) * rotation_y(150.0))
+        assert isinstance(scene.world.shapes[1], Plane)
+        assert scene.world.shapes[1].transformation.is_close(Transformation())
+        assert isinstance(scene.world.shapes[2], Sphere)
+        assert scene.world.shapes[2].transformation.is_close(translation(Vec(0, 0, 1)))
+
+        # Check that the camera is ok
+
+        assert isinstance(scene.camera, PerspectiveCamera)
+        assert scene.camera.transformation.is_close(rotation_z(30) * translation(Vec(-4, 0, 1)))
+        assert pytest.approx(1.0) == scene.camera.aspect_ratio
+        assert pytest.approx(2.0) == scene.camera.screen_distance
+
+    def test_parser_undefined_material(self):
+        # Check that unknown materials raises a GrammarError
+        stream = StringIO("""
+        plane(this_material_does_not_exist, identity)
+        """)
+
+        try:
+            _ = parse_scene(input_file=InputStream(stream))
+            assert False, "the code did not throw an exception"
+        except GrammarError:
+            pass
+
+    def test_parser_double_camera(self):
+        # Check that defining two cameras in the same file raises a GrammarError
+        stream = StringIO("""
+        camera(perspective, rotation_z(30) * translation([-4, 0, 1]), 1.0, 1.0)
+        camera(orthogonal, identity, 1.0, 1.0)
+        """)
+
+        try:
+            _ = parse_scene(input_file=InputStream(stream))
+            assert False, "the code did not throw an exception"
+        except GrammarError:
+            pass
 
 
 if __name__ == "__main__":

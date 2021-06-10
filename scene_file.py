@@ -5,6 +5,8 @@ from enum import Enum
 from io import StringIO
 from typing import Dict, Union, List, Tuple
 
+import pytest
+
 from camera import Camera, PerspectiveCamera, OrthogonalCamera
 from colors import Color
 from geometry import Vec
@@ -12,6 +14,7 @@ from hdrimages import read_pfm_image
 from materials import Material, BRDF, Pigment, UniformPigment, CheckeredPigment, ImagePigment, DiffuseBRDF, SpecularBRDF
 from shapes import Shape, Sphere, Plane
 from transformations import translation, rotation_x, rotation_y, rotation_z, scaling, Transformation
+from world import World
 
 WHITESPACE = " \t\n\r"
 SYMBOLS = "()<>[],*"
@@ -330,7 +333,7 @@ class InputStream:
 class Scene:
     """A scene read from a scene file"""
     materials: Dict[str, Material] = field(default_factory=dict)
-    objects: List[Shape] = field(default_factory=list)
+    world: World = World()
     camera: Union[Camera, None] = None
     float_variables: Dict[str, float] = field(default_factory=dict)
 
@@ -567,7 +570,8 @@ def parse_camera(input_file: InputStream, scene) -> Camera:
     return result
 
 
-def parse_scene(input_file: InputStream):
+def parse_scene(input_file: InputStream) -> Scene:
+    """Read a scene description from a stream and return a :class:`.Scene` object"""
     scene = Scene()
 
     while True:
@@ -586,9 +590,9 @@ def parse_scene(input_file: InputStream):
 
             scene.float_variables[variable_name] = variable_value
         elif what.keyword == KeywordEnum.SPHERE:
-            scene.objects.append(parse_sphere(input_file, scene))
+            scene.world.add_shape(parse_sphere(input_file, scene))
         elif what.keyword == KeywordEnum.PLANE:
-            scene.objects.append(parse_plane(input_file, scene))
+            scene.world.add_shape(parse_plane(input_file, scene))
         elif what.keyword == KeywordEnum.CAMERA:
             if scene.camera:
                 raise GrammarError(what.location, "You cannot define more than one camera")
