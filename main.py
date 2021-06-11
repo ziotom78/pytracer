@@ -19,19 +19,14 @@
 from dataclasses import dataclass
 from math import sqrt
 from time import process_time
+from typing import Dict, List
 import sys
 
-from hdrimages import HdrImage, Endianness, read_pfm_image
-from camera import OrthogonalCamera, PerspectiveCamera
-from colors import Color, BLACK, WHITE
-from geometry import Point, Vec
+from hdrimages import HdrImage, read_pfm_image
+from colors import BLACK
 from imagetracer import ImageTracer
-from lights import PointLight
 from pcg import PCG
-from shapes import Sphere, Plane
-from transformations import translation, scaling, rotation_z
-from world import World
-from materials import UniformPigment, CheckeredPigment, ImagePigment, DiffuseBRDF, Material, SpecularBRDF
+from scene_file import parse_scene, GrammarError, InputStream
 from render import OnOffRenderer, FlatRenderer, PathTracer, PointLightRenderer
 
 import click
@@ -50,13 +45,33 @@ def cli():
     pass
 
 
+def build_variable_table(definitions: List[str]) -> Dict[str, float]:
+    """Parse the list of `-d` switches and return a dictionary associating variable names with their values"""
+
+    variables = {}
+    for declaration in definitions:
+        parts = declaration.split(":")
+        if len(parts) != 2:
+            print(f"error, the definition «{declaration}» does not follow the pattern NAME:VALUE")
+            sys.exit(1)
+
+        name, value = parts
+        try:
+            value = float(value)
+        except ValueError:
+            print(f"invalid floating-point value «{value}» in definition «{declaration}»")
+
+        variables[name] = value
+
+    return variables
+
+
 RENDERERS = ["onoff", "flat", "pathtracing", "pointlight"]
 
 
-@click.command("demo")
+@click.command("render")
 @click.option("--width", type=int, default=640, help="Width of the image to render")
 @click.option("--height", type=int, default=480, help="Height of the image to render")
-@click.option("--angle-deg", type=float, default=0.0, help="Angle of view")
 @click.option('--algorithm', type=click.Choice(RENDERERS), default="pathtracing")
 @click.option(
     "--pfm-output",
@@ -69,11 +84,6 @@ RENDERERS = ["onoff", "flat", "pathtracing", "pointlight"]
     type=str,
     default="output.png",
     help="Name of the PNG file to create",
-)
-@click.option(
-    "--orthogonal",
-    is_flag=True,
-    help="Use an orthogonal camera instead of a perspective camera",
 )
 @click.option(
     "--num-of-rays",
@@ -105,85 +115,55 @@ RENDERERS = ["onoff", "flat", "pathtracing", "pointlight"]
     help="Number of samples per pixel (must be a perfect square, e.g., 16).",
     default=1,
 )
-def demo(width, height, angle_deg, algorithm, orthogonal, pfm_output, png_output, num_of_rays, max_depth, init_state,
-         init_seq, samples_per_pixel):
+@click.option(
+    "--declare-float",
+    "-d",
+    type=str,
+    help="Declare a variable. The syntax is «--declare-float=VAR:VALUE». Example: --declare-float=clock:150",
+    multiple=True,
+)
+@click.argument("input_scene_name", type=str)
+def demo(width, height, algorithm, pfm_output, png_output, num_of_rays, max_depth, init_state,
+         init_seq, samples_per_pixel, declare_float, input_scene_name):
     samples_per_side = int(sqrt(samples_per_pixel))
     if samples_per_side ** 2 != samples_per_pixel:
         print(f"Error, the number of samples per pixel ({samples_per_pixel}) must be a perfect square")
         return
 
-    # Create a world and populate it with a few shapes
-    world = World()
+    variables = build_variable_table(declare_float)
 
-    sky_material = Material(
-        brdf=DiffuseBRDF(pigment=UniformPigment(Color(0, 0, 0))),
-        emitted_radiance=UniformPigment(Color(1.0, 0.9, 0.5)),
-    )
-    ground_material = Material(
-        brdf=DiffuseBRDF(
-            pigment=CheckeredPigment(
-                color1=Color(0.3, 0.5, 0.1),
-                color2=Color(0.1, 0.2, 0.5),
-            )
-        )
-    )
-    sphere_material = Material(brdf=DiffuseBRDF(pigment=UniformPigment(Color(0.3, 0.4, 0.8))))
-    mirror_material = Material(brdf=SpecularBRDF(pigment=UniformPigment(color=Color(0.6, 0.2, 0.3))))
-    world.add_shape(
-        Sphere(
-            material=sky_material,
-            transformation=scaling(Vec(200, 200, 200)) * translation(Vec(0, 0, 0.4))
-        )
-    )
-    world.add_shape(
-        Plane(
-            material=ground_material,
-        )
-    )
-    world.add_shape(Sphere(
-        material=sphere_material,
-        transformation=translation(Vec(0, 0, 1)),
-    ))
-    world.add_shape(Sphere(
-        material=mirror_material,
-        transformation=translation(Vec(1, 2.5, 0)),
-    ))
-
-    world.add_light(PointLight(position=Point(-30, 30, 30), color=Color(1.0, 1.0, 1.0)))
+    with open(input_scene_name, "rt") as f:
+        try:
+            scene = parse_scene(input_file=InputStream(stream=f, file_name=input_scene_name),
+                                variables=variables)
+        except GrammarError as e:
+            loc = e.location
+            print(f"{loc.file_name}:{loc.line_num}:{loc.col_num}: {e.message}")
+            sys.exit(1)
 
     image = HdrImage(width, height)
-    print(f"Generating a {width}×{height} image, with the camera tilted by {angle_deg}°")
-
-    # Initialize a camera
-    camera_tr = rotation_z(angle_deg=angle_deg) * translation(Vec(-1.0, 0.0, 1.0))
-    if orthogonal:
-        camera = OrthogonalCamera(aspect_ratio=width / height, transformation=camera_tr)
-    else:
-        camera = PerspectiveCamera(
-            aspect_ratio=width / height, transformation=camera_tr
-        )
+    print(f"Generating a {width}×{height} image")
 
     # Run the ray-tracer
-
-    tracer = ImageTracer(image=image, camera=camera, samples_per_side=samples_per_side)
+    tracer = ImageTracer(image=image, camera=scene.camera, samples_per_side=samples_per_side)
 
     if algorithm == "onoff":
         print("Using on/off renderer")
-        renderer = OnOffRenderer(world=world, background_color=BLACK)
+        renderer = OnOffRenderer(world=scene.world, background_color=BLACK)
     elif algorithm == "flat":
         print("Using flat renderer")
-        renderer = FlatRenderer(world=world, background_color=BLACK)
+        renderer = FlatRenderer(world=scene.world, background_color=BLACK)
     elif algorithm == "pathtracing":
         print("Using a path tracer")
         renderer = PathTracer(
-            world=world,
+            world=scene.world,
             pcg=PCG(init_state=init_state, init_seq=init_seq),
             num_of_rays=num_of_rays,
             max_depth=max_depth,
         )
     elif algorithm == "pointlight":
         print("Using a point-light tracer")
-        renderer = PointLightRenderer(world=world, background_color=BLACK)
+        renderer = PointLightRenderer(world=scene.world, background_color=BLACK)
     else:
         print(f"Unknown renderer: {algorithm}")
         sys.exit(1)

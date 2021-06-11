@@ -2,10 +2,7 @@
 from copy import copy
 from dataclasses import dataclass, field
 from enum import Enum
-from io import StringIO
-from typing import Dict, Union, List, Tuple
-
-import pytest
+from typing import Dict, Union, List, Set, Tuple
 
 from camera import Camera, PerspectiveCamera, OrthogonalCamera
 from colors import Color
@@ -336,6 +333,7 @@ class Scene:
     world: World = World()
     camera: Union[Camera, None] = None
     float_variables: Dict[str, float] = field(default_factory=dict)
+    overridden_variables: Set[str] = field(default_factory=set)
 
 
 def expect_symbol(input_file: InputStream, symbol: str) -> SymbolToken:
@@ -570,9 +568,11 @@ def parse_camera(input_file: InputStream, scene) -> Camera:
     return result
 
 
-def parse_scene(input_file: InputStream) -> Scene:
+def parse_scene(input_file: InputStream, variables: Dict[str, float] = {}) -> Scene:
     """Read a scene description from a stream and return a :class:`.Scene` object"""
     scene = Scene()
+    scene.float_variables = copy(variables)
+    scene.overridden_variables = set(variables.keys())
 
     while True:
         what = input_file.read_token()
@@ -584,11 +584,22 @@ def parse_scene(input_file: InputStream) -> Scene:
 
         if what.keyword == KeywordEnum.FLOAT:
             variable_name = expect_identifier(input_file)
+
+            # Save this for the error message
+            variable_loc = input_file.location
+
             expect_symbol(input_file, "(")
             variable_value = expect_number(input_file, scene)
             expect_symbol(input_file, ")")
 
-            scene.float_variables[variable_name] = variable_value
+            if (variable_name in scene.float_variables) and not (variable_name in scene.overridden_variables):
+                raise GrammarError(location=variable_loc, message=f"variable «{variable_name}» cannot be redefined")
+
+            if variable_name not in scene.overridden_variables:
+                # Only define the variable if it was not defined by the user *outside* the scene file
+                # (e.g., from the command line)
+                scene.float_variables[variable_name] = variable_value
+
         elif what.keyword == KeywordEnum.SPHERE:
             scene.world.add_shape(parse_sphere(input_file, scene))
         elif what.keyword == KeywordEnum.PLANE:
