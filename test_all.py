@@ -25,7 +25,7 @@ from copy import deepcopy
 from math import pi, sqrt
 
 import unittest
-from io import BytesIO
+from io import BytesIO, StringIO
 from colors import Color, BLACK, WHITE
 from hdrimages import (
     HdrImage,
@@ -37,6 +37,8 @@ from hdrimages import (
     _parse_endianness,
 )
 from geometry import Vec, Point, Normal, VEC_X, VEC_Y, VEC_Z, create_onb_from_z
+from scene_file import InputStream, KeywordEnum, Token, KeywordToken, IdentifierToken, SymbolToken, LiteralNumberToken, \
+    StringToken, parse_scene, GrammarError
 from transformations import (
     Transformation,
     translation,
@@ -53,7 +55,7 @@ from shapes import Sphere, Plane
 from misc import are_close
 from world import World
 from pcg import PCG
-from materials import UniformPigment, ImagePigment, CheckeredPigment, DiffuseBRDF, Material
+from materials import UniformPigment, ImagePigment, CheckeredPigment, DiffuseBRDF, Material, SpecularBRDF
 from render import OnOffRenderer, FlatRenderer, PathTracer
 
 import pytest
@@ -223,7 +225,6 @@ class TestHdrImage(unittest.TestCase):
         img.set_pixel(0, 0, Color(0.5e1, 1.0e1, 1.5e1))
         img.set_pixel(1, 0, Color(0.5e3, 1.0e3, 1.5e3))
 
-        print(img.average_luminosity(delta=0.0))
         assert pytest.approx(100.0) == img.average_luminosity(delta=0.0)
 
     def test_normalize_image(self):
@@ -1005,6 +1006,214 @@ class TestPathTracer(unittest.TestCase):
             assert pytest.approx(expected, 1e-3) == color.r
             assert pytest.approx(expected, 1e-3) == color.g
             assert pytest.approx(expected, 1e-3) == color.b
+
+
+def _assert_is_keyword(token: Token, keyword: KeywordEnum):
+    assert isinstance(token, KeywordToken)
+    assert token.keyword == keyword, f"Token '{token}' is not equal to keyword '{keyword}'"
+
+
+def _assert_is_identifier(token: Token, identifier: str):
+    assert isinstance(token, IdentifierToken)
+    assert token.identifier == identifier, f"expecting identifier '{identifier}' instead of '{token}'"
+
+
+def _assert_is_symbol(token: Token, symbol: str):
+    assert isinstance(token, SymbolToken)
+    assert token.symbol == symbol, f"expecting symbol '{symbol}' instead of '{token}'"
+
+
+def _assert_is_number(token: Token, number: float):
+    assert isinstance(token, LiteralNumberToken)
+    assert token.value == number, f"Token '{token}' is not equal to number '{number}'"
+
+
+def _assert_is_string(token: Token, s: str):
+    assert isinstance(token, StringToken)
+    assert token.string == s, f"Token '{token}' is not equal to string '{s}'"
+
+
+class TestSceneFile(unittest.TestCase):
+    def test_input_file(self):
+        stream = InputStream(StringIO("abc   \nd\nef"))
+
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 1
+
+        assert stream.read_char() == "a"
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 2
+
+        stream.unread_char("A")
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 1
+
+        assert stream.read_char() == "A"
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 2
+
+        assert stream.read_char() == "b"
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 3
+
+        assert stream.read_char() == "c"
+        assert stream.location.line_num == 1
+        assert stream.location.col_num == 4
+
+        stream.skip_whitespaces_and_comments()
+
+        assert stream.read_char() == "d"
+        assert stream.location.line_num == 2
+        assert stream.location.col_num == 2
+
+        assert stream.read_char() == "\n"
+        assert stream.location.line_num == 3
+        assert stream.location.col_num == 1
+
+        assert stream.read_char() == "e"
+        assert stream.location.line_num == 3
+        assert stream.location.col_num == 2
+
+        assert stream.read_char() == "f"
+        assert stream.location.line_num == 3
+        assert stream.location.col_num == 3
+
+        assert stream.read_char() == ""
+
+    def test_lexer(self):
+        stream = StringIO("""
+        # This is a comment
+        # This is another comment
+        new material sky_material(
+            diffuse(image("my file.pfm")),
+            <5.0, 500.0, 300.0>
+        ) # Comment at the end of the line
+""")
+
+        input_file = InputStream(stream)
+
+        _assert_is_keyword(input_file.read_token(), KeywordEnum.NEW)
+        _assert_is_keyword(input_file.read_token(), KeywordEnum.MATERIAL)
+        _assert_is_identifier(input_file.read_token(), "sky_material")
+        _assert_is_symbol(input_file.read_token(), "(")
+        _assert_is_keyword(input_file.read_token(), KeywordEnum.DIFFUSE)
+        _assert_is_symbol(input_file.read_token(), "(")
+        _assert_is_keyword(input_file.read_token(), KeywordEnum.IMAGE)
+        _assert_is_symbol(input_file.read_token(), "(")
+        _assert_is_string(input_file.read_token(), "my file.pfm")
+        _assert_is_symbol(input_file.read_token(), ")")
+
+    def test_parser(self):
+        stream = StringIO("""
+        float clock(150)
+    
+        material sky_material(
+            diffuse(uniform(<0, 0, 0>)),
+            uniform(<0.7, 0.5, 1>)
+        )
+    
+        # Here is a comment
+    
+        material ground_material(
+            diffuse(checkered(<0.3, 0.5, 0.1>,
+                              <0.1, 0.2, 0.5>, 4)),
+            uniform(<0, 0, 0>)
+        )
+    
+        material sphere_material(
+            specular(uniform(<0.5, 0.5, 0.5>)),
+            uniform(<0, 0, 0>)
+        )
+    
+        plane (sky_material, translation([0, 0, 100]) * rotation_y(clock))
+        plane (ground_material, identity)
+    
+        sphere(sphere_material, translation([0, 0, 1]))
+    
+        camera(perspective, rotation_z(30) * translation([-4, 0, 1]), 1.0, 2.0)
+        """)
+
+        scene = parse_scene(input_file=InputStream(stream))
+
+        # Check that the float variables are ok
+
+        assert len(scene.float_variables) == 1
+        assert "clock" in scene.float_variables.keys()
+        assert scene.float_variables["clock"] == 150.0
+
+        # Check that the materials are ok
+
+        assert len(scene.materials) == 3
+        assert "sphere_material" in scene.materials
+        assert "sky_material" in scene.materials
+        assert "ground_material" in scene.materials
+
+        sphere_material = scene.materials["sphere_material"]
+        sky_material = scene.materials["sky_material"]
+        ground_material = scene.materials["ground_material"]
+
+        assert isinstance(sky_material.brdf, DiffuseBRDF)
+        assert isinstance(sky_material.brdf.pigment, UniformPigment)
+        assert sky_material.brdf.pigment.color.is_close(Color(0, 0, 0))
+
+        assert isinstance(ground_material.brdf, DiffuseBRDF)
+        assert isinstance(ground_material.brdf.pigment, CheckeredPigment)
+        assert ground_material.brdf.pigment.color1.is_close(Color(0.3, 0.5, 0.1))
+        assert ground_material.brdf.pigment.color2.is_close(Color(0.1, 0.2, 0.5))
+        assert ground_material.brdf.pigment.num_of_steps == 4
+
+        assert isinstance(sphere_material.brdf, SpecularBRDF)
+        assert isinstance(sphere_material.brdf.pigment, UniformPigment)
+        assert sphere_material.brdf.pigment.color.is_close(Color(0.5, 0.5, 0.5))
+
+        assert isinstance(sky_material.emitted_radiance, UniformPigment)
+        assert sky_material.emitted_radiance.color.is_close(Color(0.7, 0.5, 1.0))
+        assert isinstance(ground_material.emitted_radiance, UniformPigment)
+        assert ground_material.emitted_radiance.color.is_close(Color(0, 0, 0))
+        assert isinstance(sphere_material.emitted_radiance, UniformPigment)
+        assert sphere_material.emitted_radiance.color.is_close(Color(0, 0, 0))
+
+        # Check that the shapes are ok
+
+        assert len(scene.world.shapes) == 3
+        assert isinstance(scene.world.shapes[0], Plane)
+        assert scene.world.shapes[0].transformation.is_close(translation(Vec(0, 0, 100)) * rotation_y(150.0))
+        assert isinstance(scene.world.shapes[1], Plane)
+        assert scene.world.shapes[1].transformation.is_close(Transformation())
+        assert isinstance(scene.world.shapes[2], Sphere)
+        assert scene.world.shapes[2].transformation.is_close(translation(Vec(0, 0, 1)))
+
+        # Check that the camera is ok
+
+        assert isinstance(scene.camera, PerspectiveCamera)
+        assert scene.camera.transformation.is_close(rotation_z(30) * translation(Vec(-4, 0, 1)))
+        assert pytest.approx(1.0) == scene.camera.aspect_ratio
+        assert pytest.approx(2.0) == scene.camera.screen_distance
+
+    def test_parser_undefined_material(self):
+        # Check that unknown materials raises a GrammarError
+        stream = StringIO("""
+        plane(this_material_does_not_exist, identity)
+        """)
+
+        try:
+            _ = parse_scene(input_file=InputStream(stream))
+            assert False, "the code did not throw an exception"
+        except GrammarError:
+            pass
+
+    def test_parser_double_camera(self):
+        # Check that defining two cameras in the same file raises a GrammarError
+        stream = StringIO("""
+        camera(perspective, rotation_z(30) * translation([-4, 0, 1]), 1.0, 1.0)
+        camera(orthogonal, identity, 1.0, 1.0)
+        """)
+
+        try:
+            _ = parse_scene(input_file=InputStream(stream))
+            assert False, "the code did not throw an exception"
+        except GrammarError:
+            pass
 
 
 if __name__ == "__main__":

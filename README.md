@@ -12,15 +12,29 @@ To check that the code works as expected, you can run the suite of tests using t
 
     pytest
 
-## Examples
 
-Check the folder [`examples`](https://github.com/ziotom78/pytracer/tree/master/examples) for examples of scene files. You can render these files using the command
+## Usage
 
-    ./main.py render FILENAME
+The program is run through the script `main.py`. You can create an image with the following command:
+
+    ./main.py render examples/demo.txt
+
+Beware that it will take a very long time to produce the image!
+
+To get command-line help, run
+
+    ./main.py --help
+
+
+## Scene files
+
+Describe here the syntax used in the files. See [`examples/demo.txt`](./examples/demo.txt) for an example.
+
 
 ## History
 
 See the file [CHANGELOG.md](https://github.com/ziotom78/pytracer/blob/master/CHANGELOG.md).
+
 
 ## License
 
