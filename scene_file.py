@@ -336,7 +336,7 @@ class Scene:
     overridden_variables: Set[str] = field(default_factory=set)
 
 
-def expect_symbol(input_file: InputStream, symbol: str) -> SymbolToken:
+def expect_symbol(input_file: InputStream, symbol: str):
     """Read a token from `input_file` and check that it matches `symbol`."""
     token = input_file.read_token()
     if not isinstance(token, SymbolToken) or token.symbol != symbol:
