@@ -1,5 +1,9 @@
 # HEAD
 
+# Version 1.0.0
+
+-   Implement a language to describe scene files [#16](https://github.com/ziotom78/pytracer/pull/16)
+
 # 2021-05-26
 
 -   Implement a path tracer [#12](https://github.com/ziotom78/pytracer/pull/12)

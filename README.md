@@ -12,6 +12,16 @@ To check that the code works as expected, you can run the suite of tests using t
 
     pytest
 
+## Examples
+
+Check the folder [`examples`](https://github.com/ziotom78/pytracer/tree/master/examples) for examples of scene files. You can render these files using the command
+
+    ./main.py render FILENAME
+
+## History
+
+See the file [CHANGELOG.md](https://github.com/ziotom78/pytracer/blob/master/CHANGELOG.md).
+
 ## License
 
 The code is released under a MIT license. See the file [LICENSE.md](./LICENSE.md)
