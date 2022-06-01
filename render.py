@@ -75,12 +75,11 @@ class PathTracer(Renderer):
     """A simple path-tracing renderer
 
     The algorithm implemented here allows the caller to tune number of rays thrown at each iteration, as well as the
-    maximum depth. It implements Russian roulette, so in principle it will take a finite time to complete the
-    calculation even if you set max_depth to `math.inf`.
+    maximum depth. It implements Russian roulette to reduce the number of recursive calls.
     """
 
     def __init__(self, world: World, background_color: Color = BLACK, pcg: PCG = PCG(), num_of_rays: int = 10,
-                 max_depth: int = 2, russian_roulette_limit=3):
+                 max_depth: int = 10, russian_roulette_limit=3):
         super().__init__(world, background_color)
         self.pcg = pcg
         self.num_of_rays = num_of_rays
@@ -151,7 +150,7 @@ class PointLightRenderer(Renderer):
                 distance_vec = hit_record.world_point - cur_light.position
                 distance = distance_vec.norm()
                 in_dir = distance_vec * (1.0 / distance)
-                cos_theta = max(0.0, normalized_dot(-ray.dir, hit_record.normal))
+                cos_theta = max(0.0, normalized_dot(-in_dir, hit_record.normal))
 
                 distance_factor = (cur_light.linear_radius / distance)**2 if (cur_light.linear_radius > 0) else 1.0
 
