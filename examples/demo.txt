@@ -18,6 +18,8 @@ material sphere_material(
     uniform(<0, 0, 0>)
 )
 
+point_light([10, 10, 10], <1, 1, 1>, 1)
+
 plane (sky_material, translation([0, 0, 100]) * rotation_y(clock))
 plane (ground_material, identity)
 

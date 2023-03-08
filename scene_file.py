@@ -6,10 +6,11 @@ from typing import Dict, Union, List, Set, Tuple
 
 from camera import Camera, PerspectiveCamera, OrthogonalCamera
 from colors import Color
-from geometry import Vec
+from geometry import Vec, Point
 from hdrimages import read_pfm_image
+from lights import PointLight
 from materials import Material, BRDF, Pigment, UniformPigment, CheckeredPigment, ImagePigment, DiffuseBRDF, SpecularBRDF
-from shapes import Shape, Sphere, Plane
+from shapes import Sphere, Plane
 from transformations import translation, rotation_x, rotation_y, rotation_z, scaling, Transformation
 from world import World
 
@@ -66,6 +67,7 @@ class KeywordEnum(Enum):
     ORTHOGONAL = 17
     PERSPECTIVE = 18
     FLOAT = 19
+    POINT_LIGHT = 20
 
 
 KEYWORDS: Dict[str, KeywordEnum] = {
@@ -88,6 +90,7 @@ KEYWORDS: Dict[str, KeywordEnum] = {
     "orthogonal": KeywordEnum.ORTHOGONAL,
     "perspective": KeywordEnum.PERSPECTIVE,
     "float": KeywordEnum.FLOAT,
+    "point_light": KeywordEnum.POINT_LIGHT,
 }
 
 
@@ -568,6 +571,18 @@ def parse_camera(input_file: InputStream, scene) -> Camera:
     return result
 
 
+def parse_point_light(input_file: InputStream, scene: Scene) -> PointLight:
+    expect_symbol(input_file, "(")
+    position = parse_vector(input_file, scene)
+    expect_symbol(input_file, ",")
+    color = parse_color(input_file, scene)
+    expect_symbol(input_file, ",")
+    radius = expect_number(input_file, scene)
+    expect_symbol(input_file, ")")
+
+    return PointLight(position=Point(position.x, position.y, position.z), color=color, linear_radius=radius)
+
+
 def parse_scene(input_file: InputStream, variables: Dict[str, float] = {}) -> Scene:
     """Read a scene description from a stream and return a :class:`.Scene` object"""
     scene = Scene()
@@ -612,5 +627,10 @@ def parse_scene(input_file: InputStream, variables: Dict[str, float] = {}) -> Sc
         elif what.keyword == KeywordEnum.MATERIAL:
             name, material = parse_material(input_file, scene)
             scene.materials[name] = material
+        elif what.keyword == KeywordEnum.POINT_LIGHT:
+            point_light = parse_point_light(input_file, scene)
+            scene.world.add_light(point_light)
+        else:
+            raise GrammarError(what.location, f"Unexpected token {what}")
 
     return scene
