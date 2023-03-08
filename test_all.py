@@ -75,7 +75,6 @@ class TestColor(unittest.TestCase):
         col2 = Color(5.0, 7.0, 9.0)
 
         assert (col1 + col2).is_close(Color(6.0, 9.0, 12.0))
-        assert (col1 - col2).is_close(Color(-4.0, -5.0, -6.0))
         assert (col1 * col2).is_close(Color(5.0, 14.0, 27.0))
 
         prod_col = Color(1.0, 2.0, 3.0) * 2.0

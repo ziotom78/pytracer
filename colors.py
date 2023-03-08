@@ -38,14 +38,6 @@ class Color:
             self.b + other.b,
         )
 
-    def __sub__(self, other):
-        """Subtract two colors"""
-        return Color(
-            self.r - other.r,
-            self.g - other.g,
-            self.b - other.b,
-        )
-
     def __mul__(self, other):
         """Multiply two colors, or one color with one number"""
         try:
