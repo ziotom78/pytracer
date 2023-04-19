@@ -73,7 +73,7 @@ class OrthogonalCamera(Camera):
         """
         origin = Point(-1.0, (1.0 - 2 * u) * self.aspect_ratio, 2 * v - 1)
         direction = VEC_X
-        return Ray(origin=origin, dir=direction, tmin=1.0).transform(self.transformation)
+        return Ray(origin=origin, dir=direction, tmin=1.0e-5).transform(self.transformation)
 
 
 class PerspectiveCamera(Camera):
@@ -112,7 +112,7 @@ class PerspectiveCamera(Camera):
         """
         origin = Point(-self.screen_distance, 0.0, 0.0)
         direction = Vec(self.screen_distance, (1.0 - 2 * u) * self.aspect_ratio, 2 * v - 1)
-        return Ray(origin=origin, dir=direction, tmin=1.0).transform(self.transformation)
+        return Ray(origin=origin, dir=direction, tmin=1.0e-5).transform(self.transformation)
 
     def aperture_deg(self):
         """Compute the aperture of the camera in degrees
