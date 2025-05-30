@@ -22,11 +22,11 @@
 # SOFTWARE.
 
 from copy import deepcopy
-from math import pi
+from math import pi, cos, radians
 
 import unittest
 from io import BytesIO, StringIO
-from pytracer.colors import Color, BLACK, WHITE
+from pytracer.colors import Color, BLACK, WHITE, RED, GREEN, BLUE, YELLOW
 from pytracer.hdrimages import (
     HdrImage,
     InvalidPfmFileFormat,
@@ -73,7 +73,8 @@ from pytracer.materials import (
     Material,
     SpecularBRDF,
 )
-from pytracer.render import OnOffRenderer, FlatRenderer, PathTracer
+from pytracer.lights import PointLight
+from pytracer.render import OnOffRenderer, FlatRenderer, PathTracer, PointLightRenderer
 
 import pytest
 
@@ -1050,6 +1051,71 @@ class TestPathTracer(unittest.TestCase):
             assert pytest.approx(expected, 1e-3) == color.b
 
 
+class TestPointLightRenderer(unittest.TestCase):
+    def testBasicCase(self):
+        world = World()
+
+        sphere_material = Material(
+            brdf=DiffuseBRDF(pigment=UniformPigment(RED)),
+            emitted_radiance=UniformPigment(BLUE),
+        )
+
+        world.add_shape(Sphere(material=sphere_material))
+
+        # This is the scene as viewed from above (xy plane):
+        #
+        #    y = −1         y = 0
+        #      ·              ·
+        #      ·              ·
+        #      ·        , - ~ ~ ~ - ,
+        #      ·    , '               ' ,
+        #      ·  ,                       ,
+        #      · ,                         ,
+        #      ·,                           ,
+        #      ·,           Sphere          ,  · · · ·  x = 0
+        #      ·,                           ,
+        #      · ,                         ,
+        #      ·  ,                       ,
+        #      ·    ,                  , '
+        #      ·      ' - , _ _ _ ,  ' · · · · · · · ·  x = −1
+        #      ·            . ^
+        #      ·          .   |
+        #      ·        .     |
+        #      ·      .       |
+        #      ·    .         |
+        #      ·  .           |
+        #      💡             ⊙  Observer  · · · · · ·  x = −2
+        # Light source
+        # (hitting the
+        # sphere with
+        # a 45° angle)
+
+        world.add_light(
+            PointLight(
+                position=Point(-2, -1, 0),
+                color=YELLOW,
+            )
+        )
+
+        renderer = PointLightRenderer(
+            world=world,
+            background_color=BLACK,
+            ambient_color=GREEN,
+        )
+
+        ray = Ray(origin=Point(-2, 0, 0), dir=Vec(1, 0, 0))
+        color = renderer(ray)
+
+        expected_color = (
+            renderer.ambient_color
+            + sphere_material.emitted_radiance.color
+            + sphere_material.brdf.pigment.color * cos(radians(45)) * (1.0 / pi)
+        )
+        assert pytest.approx(expected_color.r, 1e-5) == color.r
+        assert pytest.approx(expected_color.g, 1e-5) == color.g
+        assert pytest.approx(expected_color.b, 1e-5) == color.b
+
+
 def _assert_is_keyword(token: Token, keyword: KeywordEnum):
     assert isinstance(token, KeywordToken)
     assert token.keyword == keyword, (
@@ -1152,30 +1218,30 @@ class TestSceneFile(unittest.TestCase):
     def test_parser(self):
         stream = StringIO("""
         float clock(150)
-    
+
         material sky_material(
             diffuse(uniform(<0, 0, 0>)),
             uniform(<0.7, 0.5, 1>)
         )
-    
+
         # Here is a comment
-    
+
         material ground_material(
             diffuse(checkered(<0.3, 0.5, 0.1>,
                               <0.1, 0.2, 0.5>, 4)),
             uniform(<0, 0, 0>)
         )
-    
+
         material sphere_material(
             specular(uniform(<0.5, 0.5, 0.5>)),
             uniform(<0, 0, 0>)
         )
-    
+
         plane (sky_material, translation([0, 0, 100]) * rotation_y(clock))
         plane (ground_material, identity)
-    
+
         sphere(sphere_material, translation([0, 0, 1]))
-    
+
         camera(perspective, rotation_z(30) * translation([-4, 0, 1]), 1.0, 2.0)
         """)
 

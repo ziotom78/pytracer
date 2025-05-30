@@ -161,7 +161,10 @@ class PointLightRenderer(Renderer):
 
         hit_material = hit_record.material
 
-        result_color = self.ambient_color
+        emitted_color = hit_material.emitted_radiance.get_color(
+            hit_record.surface_point
+        )
+        result_color = self.ambient_color + emitted_color
         for cur_light in self.world.point_lights:
             if self.world.is_point_visible(
                 point=cur_light.position, observer_pos=hit_record.world_point
@@ -177,9 +180,6 @@ class PointLightRenderer(Renderer):
                     else 1.0
                 )
 
-                emitted_color = hit_material.emitted_radiance.get_color(
-                    hit_record.surface_point
-                )
                 brdf_color = hit_material.brdf.eval(
                     normal=hit_record.normal,
                     in_dir=in_dir,
@@ -187,10 +187,7 @@ class PointLightRenderer(Renderer):
                     uv=hit_record.surface_point,
                 )
                 result_color += (
-                    (emitted_color + brdf_color)
-                    * cur_light.color
-                    * cos_theta
-                    * distance_factor
+                    brdf_color * cur_light.color * cos_theta * distance_factor
                 )
 
         return result_color
