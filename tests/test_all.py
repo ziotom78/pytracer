@@ -22,7 +22,7 @@
 # SOFTWARE.
 
 from copy import deepcopy
-from math import pi, sqrt
+from math import pi
 
 import unittest
 from io import BytesIO, StringIO
