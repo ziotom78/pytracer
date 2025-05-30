@@ -16,7 +16,7 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from typing import Union, List, Any
+from typing import Union, List
 
 from pytracer.geometry import Point
 from pytracer.hitrecord import HitRecord

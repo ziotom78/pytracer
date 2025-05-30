@@ -383,7 +383,7 @@ def expect_keywords(
     if not isinstance(token, KeywordToken):
         raise GrammarError(token.location, f"expected a keyword instead of '{token}'")
 
-    if not token.keyword in keywords:
+    if token.keyword not in keywords:
         raise GrammarError(
             token.location,
             f"expected one of the keywords {','.join([str(x) for x in keywords])} instead of '{token}'",
@@ -661,9 +661,9 @@ def parse_scene(input_file: InputStream, variables: Dict[str, float] = {}) -> Sc
             variable_value = expect_number(input_file, scene)
             expect_symbol(input_file, ")")
 
-            if (variable_name in scene.float_variables) and not (
-                variable_name in scene.overridden_variables
-            ):
+            if (
+                variable_name in scene.float_variables
+            ) and variable_name not in scene.overridden_variables:
                 raise GrammarError(
                     location=variable_loc,
                     message=f"variable «{variable_name}» cannot be redefined",
