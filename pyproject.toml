@@ -1,6 +1,6 @@
 [project]
 name = "pytracer"
-version = "2.0.0"
+version = "2.0.1"
 description = "A modernized version of the Pytracer project"
 authors = [{ name="Maurizio Tomasi", email="ziotom78@gmail.com" }]
 readme = "README.md"
