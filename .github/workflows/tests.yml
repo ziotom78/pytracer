@@ -22,7 +22,6 @@ jobs:
       - name: "Install dependencies"
         run: |
             pip install -e .
-            pip install ruff
 
       - name: "Formatting and code smells"
         run: |
