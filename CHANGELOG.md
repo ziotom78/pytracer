@@ -1,5 +1,7 @@
 # HEAD
 
+-   Fix issue [#19](https://github.com/ziotom78/pytracer/issues/19) ([#21](https://github.com/ziotom78/pytracer/pull/21))
+
 # Version 2.0.0
 
 -   **Breaking change**: stop supporting Python 3.7–3.9, add support for Python 3.10 and later, make the program callable using `python3 -m pytracer`
