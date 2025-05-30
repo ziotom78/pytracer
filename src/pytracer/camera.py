@@ -17,9 +17,9 @@
 # IN THE SOFTWARE.
 
 import math
-from geometry import Point, Vec, VEC_X
-from ray import Ray
-from transformations import Transformation
+from pytracer.geometry import Point, Vec, VEC_X
+from pytracer.ray import Ray
+from pytracer.transformations import Transformation
 
 
 class Camera:
@@ -73,7 +73,9 @@ class OrthogonalCamera(Camera):
         """
         origin = Point(-1.0, (1.0 - 2 * u) * self.aspect_ratio, 2 * v - 1)
         direction = VEC_X
-        return Ray(origin=origin, dir=direction, tmin=1.0e-5).transform(self.transformation)
+        return Ray(origin=origin, dir=direction, tmin=1.0e-5).transform(
+            self.transformation
+        )
 
 
 class PerspectiveCamera(Camera):
@@ -81,7 +83,10 @@ class PerspectiveCamera(Camera):
 
     This class implements an observer seeing the world through a perspective projection.
     """
-    def __init__(self, screen_distance=1.0, aspect_ratio=1.0, transformation=Transformation()):
+
+    def __init__(
+        self, screen_distance=1.0, aspect_ratio=1.0, transformation=Transformation()
+    ):
         """Create a new perspective camera
 
         The parameter `screen_distance` tells how much far from the eye of the observer is the screen,
@@ -111,11 +116,20 @@ class PerspectiveCamera(Camera):
             (0, 0)                          (1, 0)
         """
         origin = Point(-self.screen_distance, 0.0, 0.0)
-        direction = Vec(self.screen_distance, (1.0 - 2 * u) * self.aspect_ratio, 2 * v - 1)
-        return Ray(origin=origin, dir=direction, tmin=1.0e-5).transform(self.transformation)
+        direction = Vec(
+            self.screen_distance, (1.0 - 2 * u) * self.aspect_ratio, 2 * v - 1
+        )
+        return Ray(origin=origin, dir=direction, tmin=1.0e-5).transform(
+            self.transformation
+        )
 
     def aperture_deg(self):
         """Compute the aperture of the camera in degrees
 
         The aperture is the angle of the field-of-view along the horizontal direction (Y axis)"""
-        return 2.0 * math.atan(self.screen_distance / self.aspect_ratio) * 180.0 / 3.14159265359
+        return (
+            2.0
+            * math.atan(self.screen_distance / self.aspect_ratio)
+            * 180.0
+            / 3.14159265359
+        )

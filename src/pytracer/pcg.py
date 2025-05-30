@@ -8,19 +8,21 @@ from dataclasses import dataclass
 # it is enough to declare a variable as `uint32_t` or `uint64_t`, and
 # clipping will be done automatically by the CPU/virtual machine.
 
+
 def to_uint64(x: int) -> int:
     """Clip an integer so that it occupies 64 bits"""
-    return x & 0xffffffffffffffff
+    return x & 0xFFFFFFFFFFFFFFFF
 
 
 def to_uint32(x: int) -> int:
     """Clip an integer so that it occupies 32 bits"""
-    return x & 0xffffffff
+    return x & 0xFFFFFFFF
 
 
 @dataclass
 class PCG:
     """PCG Uniform Pseudo-random Number Generator"""
+
     state: int = 0
     inc: int = 0
 
@@ -57,4 +59,4 @@ class PCG:
 
     def random_float(self):
         """Return a new random number uniformly distributed over [0, 1]"""
-        return self.random() / 0xffffffff
+        return self.random() / 0xFFFFFFFF

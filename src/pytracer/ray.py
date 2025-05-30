@@ -18,11 +18,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import inf
 
-from geometry import Point, Vec
-from transformations import Transformation
+from pytracer.geometry import Point, Vec
+from pytracer.transformations import Transformation
 
 
 @dataclass
@@ -37,16 +37,17 @@ class Ray:
     -   `tmax` (float): the maximum distance travelled by the ray is this number times `dir`
     -   `depth` (int): number of times this ray was reflected/refracted"""
 
-    origin: Point = Point()
-    dir: Vec = Vec()
+    origin: Point = field(default_factory=Point)
+    dir: Vec = field(default_factory=Vec)
     tmin: float = 1e-5
     tmax: float = inf
     depth: int = 0
 
     def is_close(self, other: Ray, epsilon=1e-5):
         """Check if two rays are similar enough to be considered equal"""
-        return (self.origin.is_close(other.origin, epsilon=epsilon) and
-                self.dir.is_close(other.dir, epsilon=epsilon))
+        return self.origin.is_close(
+            other.origin, epsilon=epsilon
+        ) and self.dir.is_close(other.dir, epsilon=epsilon)
 
     def at(self, t):
         """Compute the point along the ray's path at some distance from the origin
@@ -59,8 +60,10 @@ class Ray:
         """Transform a ray
 
         This method returns a new ray whose origin and direction are the transformation of the original ray"""
-        return Ray(origin=transformation * self.origin,
-                   dir=transformation * self.dir,
-                   tmin=self.tmin,
-                   tmax=self.tmax,
-                   depth=self.depth)
+        return Ray(
+            origin=transformation * self.origin,
+            dir=transformation * self.dir,
+            tmin=self.tmin,
+            tmax=self.tmax,
+            depth=self.depth,
+        )

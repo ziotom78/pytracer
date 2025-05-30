@@ -16,13 +16,13 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from typing import Union, List, Any
+from typing import Union, List
 
-from geometry import Point
-from hitrecord import HitRecord
-from lights import PointLight
-from ray import Ray
-from shapes import Shape
+from pytracer.geometry import Point
+from pytracer.hitrecord import HitRecord
+from pytracer.lights import PointLight
+from pytracer.ray import Ray
+from pytracer.shapes import Shape
 
 
 class World:
@@ -32,6 +32,7 @@ class World:
     :meth:`.World.ray_intersection` to check whether a light ray intersects any
     of the shapes in the world.
     """
+
     shapes: List[Shape]
     point_lights: List[PointLight]
 

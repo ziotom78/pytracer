@@ -16,7 +16,7 @@
 
 
 from dataclasses import dataclass
-from misc import are_close
+from pytracer.misc import are_close
 
 
 @dataclass
@@ -26,6 +26,7 @@ class Color:
 
     The class has three floating-point members: `r` (red), `g` (green), and `b` (blue).
     """
+
     r: float = 0.0
     g: float = 0.0
     b: float = 0.0
@@ -61,9 +62,11 @@ class Color:
 
     def is_close(self, other, epsilon=1e-6):
         """Return True if the three RGB components of two colors are close by less than `epsilon`"""
-        return (are_close(self.r, other.r, epsilon=epsilon) and
-                are_close(self.g, other.g, epsilon=epsilon) and
-                are_close(self.b, other.b, epsilon=epsilon))
+        return (
+            are_close(self.r, other.r, epsilon=epsilon)
+            and are_close(self.g, other.g, epsilon=epsilon)
+            and are_close(self.b, other.b, epsilon=epsilon)
+        )
 
 
 BLACK = Color(0.0, 0.0, 0.0)

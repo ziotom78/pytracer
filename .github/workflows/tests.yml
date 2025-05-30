@@ -8,19 +8,25 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
-        python: [3.7, 3.8]
+        python: ["3.10", "3.13"]
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - name: "Checkout"
+        uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v2
+      - name: "Setup Python"
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Install dependencies
-        run: "pip install -r requirements.txt"
+      - name: "Install dependencies"
+        run: |
+            pip install -e .
 
-      - name: Tests
+      - name: "Formatting and code smells"
+        run: |
+            ruff format --diff .
+            ruff check .
+
+      - name: "Tests"
         run: "pytest"

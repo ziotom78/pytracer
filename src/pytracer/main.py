@@ -22,12 +22,12 @@ from time import process_time
 from typing import Dict, List
 import sys
 
-from hdrimages import HdrImage, read_pfm_image
-from colors import BLACK
-from imagetracer import ImageTracer
-from pcg import PCG
-from scene_file import parse_scene, GrammarError, InputStream
-from render import OnOffRenderer, FlatRenderer, PathTracer, PointLightRenderer
+from pytracer.hdrimages import HdrImage, read_pfm_image
+from pytracer.colors import BLACK
+from pytracer.imagetracer import ImageTracer
+from pytracer.pcg import PCG
+from pytracer.scene_file import parse_scene, GrammarError, InputStream
+from pytracer.render import OnOffRenderer, FlatRenderer, PathTracer, PointLightRenderer
 
 import click
 
@@ -52,14 +52,18 @@ def build_variable_table(definitions: List[str]) -> Dict[str, float]:
     for declaration in definitions:
         parts = declaration.split(":")
         if len(parts) != 2:
-            print(f"error, the definition «{declaration}» does not follow the pattern NAME:VALUE")
+            print(
+                f"error, the definition «{declaration}» does not follow the pattern NAME:VALUE"
+            )
             sys.exit(1)
 
         name, value = parts
         try:
             value = float(value)
         except ValueError:
-            print(f"invalid floating-point value «{value}» in definition «{declaration}»")
+            print(
+                f"invalid floating-point value «{value}» in definition «{declaration}»"
+            )
 
         variables[name] = value
 
@@ -72,7 +76,7 @@ RENDERERS = ["onoff", "flat", "pathtracing", "pointlight"]
 @click.command("render")
 @click.option("--width", type=int, default=640, help="Width of the image to render")
 @click.option("--height", type=int, default=480, help="Height of the image to render")
-@click.option('--algorithm', type=click.Choice(RENDERERS), default="pathtracing")
+@click.option("--algorithm", type=click.Choice(RENDERERS), default="pathtracing")
 @click.option(
     "--pfm-output",
     type=str,
@@ -89,13 +93,13 @@ RENDERERS = ["onoff", "flat", "pathtracing", "pointlight"]
     "--num-of-rays",
     type=int,
     default=10,
-    help="Number of rays departing from each surface point (only applicable with --algorithm=pathtracing)."
+    help="Number of rays departing from each surface point (only applicable with --algorithm=pathtracing).",
 )
 @click.option(
     "--max-depth",
     type=int,
     default=3,
-    help="Maximum allowed ray depth (only applicable with --algorithm=pathtracing)."
+    help="Maximum allowed ray depth (only applicable with --algorithm=pathtracing).",
 )
 @click.option(
     "--init-state",
@@ -107,7 +111,7 @@ RENDERERS = ["onoff", "flat", "pathtracing", "pointlight"]
     "--init-seq",
     type=int,
     help="Identifier of the sequence produced by the random number generator (positive number).",
-    default=54
+    default=54,
 )
 @click.option(
     "--samples-per-pixel",
@@ -123,19 +127,35 @@ RENDERERS = ["onoff", "flat", "pathtracing", "pointlight"]
     multiple=True,
 )
 @click.argument("input_scene_name", type=str)
-def demo(width, height, algorithm, pfm_output, png_output, num_of_rays, max_depth, init_state,
-         init_seq, samples_per_pixel, declare_float, input_scene_name):
+def demo(
+    width,
+    height,
+    algorithm,
+    pfm_output,
+    png_output,
+    num_of_rays,
+    max_depth,
+    init_state,
+    init_seq,
+    samples_per_pixel,
+    declare_float,
+    input_scene_name,
+):
     samples_per_side = int(sqrt(samples_per_pixel))
-    if samples_per_side ** 2 != samples_per_pixel:
-        print(f"Error, the number of samples per pixel ({samples_per_pixel}) must be a perfect square")
+    if samples_per_side**2 != samples_per_pixel:
+        print(
+            f"Error, the number of samples per pixel ({samples_per_pixel}) must be a perfect square"
+        )
         return
 
     variables = build_variable_table(declare_float)
 
     with open(input_scene_name, "rt") as f:
         try:
-            scene = parse_scene(input_file=InputStream(stream=f, file_name=input_scene_name),
-                                variables=variables)
+            scene = parse_scene(
+                input_file=InputStream(stream=f, file_name=input_scene_name),
+                variables=variables,
+            )
         except GrammarError as e:
             loc = e.location
             print(f"{loc.file_name}:{loc.line_num}:{loc.col_num}: {e.message}")
@@ -145,7 +165,9 @@ def demo(width, height, algorithm, pfm_output, png_output, num_of_rays, max_dept
     print(f"Generating a {width}×{height} image")
 
     # Run the ray-tracer
-    tracer = ImageTracer(image=image, camera=scene.camera, samples_per_side=samples_per_side)
+    tracer = ImageTracer(
+        image=image, camera=scene.camera, samples_per_side=samples_per_side
+    )
 
     if algorithm == "onoff":
         print("Using on/off renderer")

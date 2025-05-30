@@ -19,11 +19,18 @@
 from dataclasses import dataclass
 from math import floor, pi, sqrt, sin, cos, inf, acos
 
-from colors import Color, BLACK, WHITE
-from geometry import Normal, Vec, Vec2d, create_onb_from_z, Point, normalized_dot
-from hdrimages import HdrImage
-from pcg import PCG
-from ray import Ray
+from pytracer.colors import Color, BLACK, WHITE
+from pytracer.geometry import (
+    Normal,
+    Vec,
+    Vec2d,
+    create_onb_from_z,
+    Point,
+    normalized_dot,
+)
+from pytracer.hdrimages import HdrImage
+from pytracer.pcg import PCG
+from pytracer.ray import Ray
 
 
 class Pigment:
@@ -35,7 +42,9 @@ class Pigment:
 
     def get_color(self, uv: Vec2d) -> Color:
         """Return the color of the pigment at the specified coordinates"""
-        raise NotImplementedError("Method Pigment.get_color is abstract and cannot be called")
+        raise NotImplementedError(
+            "Method Pigment.get_color is abstract and cannot be called"
+        )
 
 
 class UniformPigment(Pigment):
@@ -100,7 +109,14 @@ class BRDF:
     def eval(self, normal: Normal, in_dir: Vec, out_dir: Vec, uv: Vec2d) -> Color:
         return BLACK
 
-    def scatter_ray(self, pcg: PCG, incoming_dir: Vec, interaction_point: Point, normal: Normal, depth: int):
+    def scatter_ray(
+        self,
+        pcg: PCG,
+        incoming_dir: Vec,
+        interaction_point: Point,
+        normal: Normal,
+        depth: int,
+    ):
         raise NotImplementedError("You cannot call BRDF.scatter_ray directly!")
 
 
@@ -113,7 +129,14 @@ class DiffuseBRDF(BRDF):
     def eval(self, normal: Normal, in_dir: Vec, out_dir: Vec, uv: Vec2d) -> Color:
         return self.pigment.get_color(uv) * (1.0 / pi)
 
-    def scatter_ray(self, pcg: PCG, incoming_dir: Vec, interaction_point: Point, normal: Normal, depth: int):
+    def scatter_ray(
+        self,
+        pcg: PCG,
+        incoming_dir: Vec,
+        interaction_point: Point,
+        normal: Normal,
+        depth: int,
+    ):
         # Cosine-weighted distribution around the z (local) axis
         e1, e2, e3 = create_onb_from_z(normal)
         cos_theta_sq = pcg.random_float()
@@ -132,7 +155,9 @@ class DiffuseBRDF(BRDF):
 class SpecularBRDF(BRDF):
     """A class representing an ideal mirror BRDF"""
 
-    def __init__(self, pigment: Pigment = UniformPigment(WHITE), threshold_angle_rad=pi / 1800.0):
+    def __init__(
+        self, pigment: Pigment = UniformPigment(WHITE), threshold_angle_rad=pi / 1800.0
+    ):
         super().__init__(pigment)
         self.threshold_angle_rad = threshold_angle_rad
 
@@ -147,7 +172,14 @@ class SpecularBRDF(BRDF):
         else:
             return Color(0.0, 0.0, 0.0)
 
-    def scatter_ray(self, pcg: PCG, incoming_dir: Vec, interaction_point: Point, normal: Normal, depth: int):
+    def scatter_ray(
+        self,
+        pcg: PCG,
+        incoming_dir: Vec,
+        interaction_point: Point,
+        normal: Normal,
+        depth: int,
+    ):
         # There is no need to use the PCG here, as the reflected direction is always completely deterministic
         # for a perfect mirror
 
@@ -167,5 +199,6 @@ class SpecularBRDF(BRDF):
 @dataclass
 class Material:
     """A material"""
+
     brdf: BRDF = DiffuseBRDF()
     emitted_radiance: Pigment = UniformPigment(BLACK)

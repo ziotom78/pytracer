@@ -20,15 +20,17 @@ import math
 from dataclasses import dataclass
 from typing import Tuple, Union
 
-from misc import are_close
+from pytracer.misc import are_close
 
 
 def _are_xyz_close(a, b, epsilon=1e-5):
     # This works thanks to Python's duck typing. In C++ and other languages
     # you should probably rely on function templates or something like
-    return (are_close(a.x, b.x, epsilon=epsilon) and
-            are_close(a.y, b.y, epsilon=epsilon) and
-            are_close(a.z, b.z, epsilon=epsilon))
+    return (
+        are_close(a.x, b.x, epsilon=epsilon)
+        and are_close(a.y, b.y, epsilon=epsilon)
+        and are_close(a.z, b.z, epsilon=epsilon)
+    )
 
 
 def _add_xyz(a, b, return_type):
@@ -78,14 +80,18 @@ class Vec:
         elif isinstance(other, Point):
             return _add_xyz(self, other, Point)
         else:
-            raise TypeError(f"Unable to run Vec.__add__ on a {type(self)} and a {type(other)}.")
+            raise TypeError(
+                f"Unable to run Vec.__add__ on a {type(self)} and a {type(other)}."
+            )
 
     def __sub__(self, other):
         """Subtract one vector from another"""
         if isinstance(other, Vec):
             return _sub_xyz(self, other, Vec)
         else:
-            raise TypeError(f"Unable to run Vec.__sub__ on a {type(self)} and a {type(other)}.")
+            raise TypeError(
+                f"Unable to run Vec.__sub__ on a {type(self)} and a {type(other)}."
+            )
 
     def __mul__(self, scalar):
         """Compute the product between a vector and a scalar"""
@@ -107,7 +113,7 @@ class Vec:
         """Return the squared norm (Euclidean length) of a vector
 
         This is faster than `Vec.norm` if you just need the squared norm."""
-        return self.x ** 2 + self.y ** 2 + self.z ** 2
+        return self.x**2 + self.y**2 + self.z**2
 
     def norm(self):
         """Return the norm (Euclidean length) of a vector"""
@@ -115,9 +121,11 @@ class Vec:
 
     def cross(self, other):
         """Compute the cross (outer) product between two vectors"""
-        return Vec(x=self.y * other.z - self.z * other.y,
-                   y=self.z * other.x - self.x * other.z,
-                   z=self.x * other.y - self.y * other.x)
+        return Vec(
+            x=self.y * other.z - self.z * other.y,
+            y=self.z * other.x - self.x * other.z,
+            z=self.x * other.y - self.y * other.x,
+        )
 
     def normalize(self):
         """Modify the vector's norm so that it becomes equal to 1"""
@@ -133,6 +141,7 @@ class Point:
     """A point in 3D space
 
     This class has three floating-point fields: `x`, `y`, and `z`."""
+
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0
@@ -147,7 +156,9 @@ class Point:
         if isinstance(other, Vec):
             return _add_xyz(self, other, Point)
         else:
-            raise TypeError(f"Unable to run Point.__add__ on a {type(self)} and a {type(other)}.")
+            raise TypeError(
+                f"Unable to run Point.__add__ on a {type(self)} and a {type(other)}."
+            )
 
     def __sub__(self, other):
         """Subtract a vector from a point"""
@@ -156,7 +167,9 @@ class Point:
         elif isinstance(other, Point):
             return _sub_xyz(self, other, Vec)
         else:
-            raise TypeError(f"Unable to run __sub__ on a {type(self)} and a {type(other)}.")
+            raise TypeError(
+                f"Unable to run __sub__ on a {type(self)} and a {type(other)}."
+            )
 
     def __mul__(self, scalar):
         """Multiply the point by a scalar value"""
@@ -176,6 +189,7 @@ class Normal:
     """A normal vector in 3D space
 
     This class has three floating-point fields: `x`, `y`, and `z`."""
+
     x: float = 0.0
     y: float = 0.0
     z: float = 0.0
@@ -221,6 +235,7 @@ class Vec2d:
     """A 2D vector used to represent a point on a surface
 
     The fields are named `u` and `v` to distinguish them from the usual 3D coordinates `x`, `y`, `z`."""
+
     u: float = 0.0
     v: float = 0.0
 
@@ -247,7 +262,7 @@ def create_onb_from_z(normal: Union[Vec, Normal]) -> Tuple[Vec, Vec, Vec]:
     return e1, e2, Vec(normal.x, normal.y, normal.z)
 
 
-def normalized_dot(v1 : Union[Vec, Normal], v2: Union[Vec, Normal]) -> float:
+def normalized_dot(v1: Union[Vec, Normal], v2: Union[Vec, Normal]) -> float:
     """Apply the dot product to the two arguments after having normalized them.
 
     The result is the cosine of the angle between the two vectors/normals."""

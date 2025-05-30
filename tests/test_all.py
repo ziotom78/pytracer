@@ -22,12 +22,12 @@
 # SOFTWARE.
 
 from copy import deepcopy
-from math import pi, sqrt
+from math import pi
 
 import unittest
 from io import BytesIO, StringIO
-from colors import Color, BLACK, WHITE
-from hdrimages import (
+from pytracer.colors import Color, BLACK, WHITE
+from pytracer.hdrimages import (
     HdrImage,
     InvalidPfmFileFormat,
     Endianness,
@@ -36,10 +36,20 @@ from hdrimages import (
     _parse_img_size,
     _parse_endianness,
 )
-from geometry import Vec, Point, Normal, VEC_X, VEC_Y, VEC_Z, create_onb_from_z
-from scene_file import InputStream, KeywordEnum, Token, KeywordToken, IdentifierToken, SymbolToken, LiteralNumberToken, \
-    StringToken, parse_scene, GrammarError
-from transformations import (
+from pytracer.geometry import Vec, Point, Normal, VEC_X, VEC_Y, VEC_Z, create_onb_from_z
+from pytracer.scene_file import (
+    InputStream,
+    KeywordEnum,
+    Token,
+    KeywordToken,
+    IdentifierToken,
+    SymbolToken,
+    LiteralNumberToken,
+    StringToken,
+    parse_scene,
+    GrammarError,
+)
+from pytracer.transformations import (
     Transformation,
     translation,
     scaling,
@@ -47,16 +57,23 @@ from transformations import (
     rotation_y,
     rotation_z,
 )
-from camera import OrthogonalCamera, PerspectiveCamera
-from ray import Ray
-from imagetracer import ImageTracer
-from hitrecord import HitRecord, Vec2d
-from shapes import Sphere, Plane
-from misc import are_close
-from world import World
-from pcg import PCG
-from materials import UniformPigment, ImagePigment, CheckeredPigment, DiffuseBRDF, Material, SpecularBRDF
-from render import OnOffRenderer, FlatRenderer, PathTracer
+from pytracer.camera import OrthogonalCamera, PerspectiveCamera
+from pytracer.ray import Ray
+from pytracer.imagetracer import ImageTracer
+from pytracer.hitrecord import HitRecord, Vec2d
+from pytracer.shapes import Sphere, Plane
+from pytracer.misc import are_close
+from pytracer.world import World
+from pytracer.pcg import PCG
+from pytracer.materials import (
+    UniformPigment,
+    ImagePigment,
+    CheckeredPigment,
+    DiffuseBRDF,
+    Material,
+    SpecularBRDF,
+)
+from pytracer.render import OnOffRenderer, FlatRenderer, PathTracer
 
 import pytest
 
@@ -310,15 +327,15 @@ class TestTransformations(unittest.TestCase):
         assert m1.is_close(m2)
 
         m3 = Transformation(m=deepcopy(m1.m), invm=deepcopy(m1.invm))
-        m3.m[2][
-            2
-        ] += 1.0  # Note: this makes "m3" not consistent (m3.is_consistent() == False)
+        m3.m[2][2] += (
+            1.0  # Note: this makes "m3" not consistent (m3.is_consistent() == False)
+        )
         assert not m1.is_close(m3)
 
         m4 = Transformation(m=deepcopy(m1.m), invm=deepcopy(m1.invm))
-        m4.invm[2][
-            2
-        ] += 1.0  # Note: this makes "m4" not consistent (m4.is_consistent() == False)
+        m4.invm[2][2] += (
+            1.0  # Note: this makes "m4" not consistent (m4.is_consistent() == False)
+        )
         assert not m1.is_close(m4)
 
     def test_multiplication(self):
@@ -670,7 +687,9 @@ class TestSphere(unittest.TestCase):
         ray = Ray(origin=Point(1.0, 1.0, 0.0), dir=Vec(-1.0, -1.0))
         intersection = sphere.ray_intersection(ray)
         # We normalize "intersection.normal", as we are not interested in its length
-        assert intersection.normal.normalize().is_close(Normal(1.0, 4.0, 0.0).normalize())
+        assert intersection.normal.normalize().is_close(
+            Normal(1.0, 4.0, 0.0).normalize()
+        )
 
     def testNormalDirection(self):
         # Scaling a sphere by -1 keeps the sphere the same but reverses its
@@ -680,7 +699,9 @@ class TestSphere(unittest.TestCase):
         ray = Ray(origin=Point(0.0, 2.0, 0.0), dir=-VEC_Y)
         intersection = sphere.ray_intersection(ray)
         # We normalize "intersection.normal", as we are not interested in its length
-        assert intersection.normal.normalize().is_close(Normal(0.0, 1.0, 0.0).normalize())
+        assert intersection.normal.normalize().is_close(
+            Normal(0.0, 1.0, 0.0).normalize()
+        )
 
     def testUVCoordinates(self):
         sphere = Sphere()
@@ -806,15 +827,15 @@ class TestWorld(unittest.TestCase):
         world.add_shape(sphere1)
         world.add_shape(sphere2)
 
-        intersection1 = world.ray_intersection(Ray(
-            origin=Point(0.0, 0.0, 0.0), dir=VEC_X
-        ))
+        intersection1 = world.ray_intersection(
+            Ray(origin=Point(0.0, 0.0, 0.0), dir=VEC_X)
+        )
         assert intersection1
         assert intersection1.world_point.is_close(Point(1.0, 0.0, 0.0))
 
-        intersection2 = world.ray_intersection(Ray(
-            origin=Point(10.0, 0.0, 0.0), dir=-VEC_X
-        ))
+        intersection2 = world.ray_intersection(
+            Ray(origin=Point(10.0, 0.0, 0.0), dir=-VEC_X)
+        )
 
         assert intersection2
         assert intersection2.world_point.is_close(Point(9.0, 0.0, 0.0))
@@ -827,18 +848,24 @@ class TestWorld(unittest.TestCase):
         world.add_shape(sphere1)
         world.add_shape(sphere2)
 
-        assert not world.is_point_visible(point=Point(10.0, 0.0, 0.0),
-                                          observer_pos=Point(0.0, 0.0, 0.0))
-        assert not world.is_point_visible(point=Point(5.0, 0.0, 0.0),
-                                          observer_pos=Point(0.0, 0.0, 0.0))
-        assert world.is_point_visible(point=Point(5.0, 0.0, 0.0),
-                                      observer_pos=Point(4.0, 0.0, 0.0))
-        assert world.is_point_visible(point=Point(0.5, 0.0, 0.0),
-                                      observer_pos=Point(0.0, 0.0, 0.0))
-        assert world.is_point_visible(point=Point(0.0, 10.0, 0.0),
-                                      observer_pos=Point(0.0, 0.0, 0.0))
-        assert world.is_point_visible(point=Point(0.0, 0.0, 10.0),
-                                      observer_pos=Point(0.0, 0.0, 0.0))
+        assert not world.is_point_visible(
+            point=Point(10.0, 0.0, 0.0), observer_pos=Point(0.0, 0.0, 0.0)
+        )
+        assert not world.is_point_visible(
+            point=Point(5.0, 0.0, 0.0), observer_pos=Point(0.0, 0.0, 0.0)
+        )
+        assert world.is_point_visible(
+            point=Point(5.0, 0.0, 0.0), observer_pos=Point(4.0, 0.0, 0.0)
+        )
+        assert world.is_point_visible(
+            point=Point(0.5, 0.0, 0.0), observer_pos=Point(0.0, 0.0, 0.0)
+        )
+        assert world.is_point_visible(
+            point=Point(0.0, 10.0, 0.0), observer_pos=Point(0.0, 0.0, 0.0)
+        )
+        assert world.is_point_visible(
+            point=Point(0.0, 0.0, 10.0), observer_pos=Point(0.0, 0.0, 0.0)
+        )
 
 
 class TestPCG(unittest.TestCase):
@@ -909,8 +936,10 @@ class TestPigments(unittest.TestCase):
 
 class TestRenderers(unittest.TestCase):
     def testOnOffRenderer(self):
-        sphere = Sphere(transformation=translation(Vec(2, 0, 0)) * scaling(Vec(0.2, 0.2, 0.2)),
-                        material=Material(brdf=DiffuseBRDF(pigment=UniformPigment(WHITE))))
+        sphere = Sphere(
+            transformation=translation(Vec(2, 0, 0)) * scaling(Vec(0.2, 0.2, 0.2)),
+            material=Material(brdf=DiffuseBRDF(pigment=UniformPigment(WHITE))),
+        )
         image = HdrImage(width=3, height=3)
         camera = OrthogonalCamera()
         tracer = ImageTracer(image=image, camera=camera)
@@ -933,8 +962,10 @@ class TestRenderers(unittest.TestCase):
 
     def testFlatRenderer(self):
         sphere_color = Color(1.0, 2.0, 3.0)
-        sphere = Sphere(transformation=translation(Vec(2, 0, 0)) * scaling(Vec(0.2, 0.2, 0.2)),
-                        material=Material(brdf=DiffuseBRDF(pigment=UniformPigment(sphere_color))))
+        sphere = Sphere(
+            transformation=translation(Vec(2, 0, 0)) * scaling(Vec(0.2, 0.2, 0.2)),
+            material=Material(brdf=DiffuseBRDF(pigment=UniformPigment(sphere_color))),
+        )
         image = HdrImage(width=3, height=3)
         camera = OrthogonalCamera()
         tracer = ImageTracer(image=image, camera=camera)
@@ -988,15 +1019,27 @@ class TestPathTracer(unittest.TestCase):
             world = World()
 
             emitted_radiance = pcg.random_float()
-            reflectance = pcg.random_float() * 0.9  # Be sure to pick a reflectance that's not too close to 1
+            reflectance = (
+                pcg.random_float() * 0.9
+            )  # Be sure to pick a reflectance that's not too close to 1
             enclosure_material = Material(
-                brdf=DiffuseBRDF(pigment=UniformPigment(Color(1.0, 1.0, 1.0) * reflectance)),
-                emitted_radiance=UniformPigment(Color(1.0, 1.0, 1.0) * emitted_radiance),
+                brdf=DiffuseBRDF(
+                    pigment=UniformPigment(Color(1.0, 1.0, 1.0) * reflectance)
+                ),
+                emitted_radiance=UniformPigment(
+                    Color(1.0, 1.0, 1.0) * emitted_radiance
+                ),
             )
 
             world.add_shape(Sphere(material=enclosure_material))
 
-            path_tracer = PathTracer(pcg=pcg, num_of_rays=1, world=world, max_depth=100, russian_roulette_limit=101)
+            path_tracer = PathTracer(
+                pcg=pcg,
+                num_of_rays=1,
+                world=world,
+                max_depth=100,
+                russian_roulette_limit=101,
+            )
 
             ray = Ray(origin=Point(0, 0, 0), dir=Vec(1, 0, 0))
             color = path_tracer(ray)
@@ -1009,12 +1052,16 @@ class TestPathTracer(unittest.TestCase):
 
 def _assert_is_keyword(token: Token, keyword: KeywordEnum):
     assert isinstance(token, KeywordToken)
-    assert token.keyword == keyword, f"Token '{token}' is not equal to keyword '{keyword}'"
+    assert token.keyword == keyword, (
+        f"Token '{token}' is not equal to keyword '{keyword}'"
+    )
 
 
 def _assert_is_identifier(token: Token, identifier: str):
     assert isinstance(token, IdentifierToken)
-    assert token.identifier == identifier, f"expecting identifier '{identifier}' instead of '{token}'"
+    assert token.identifier == identifier, (
+        f"expecting identifier '{identifier}' instead of '{token}'"
+    )
 
 
 def _assert_is_symbol(token: Token, symbol: str):
@@ -1176,7 +1223,9 @@ class TestSceneFile(unittest.TestCase):
 
         assert len(scene.world.shapes) == 3
         assert isinstance(scene.world.shapes[0], Plane)
-        assert scene.world.shapes[0].transformation.is_close(translation(Vec(0, 0, 100)) * rotation_y(150.0))
+        assert scene.world.shapes[0].transformation.is_close(
+            translation(Vec(0, 0, 100)) * rotation_y(150.0)
+        )
         assert isinstance(scene.world.shapes[1], Plane)
         assert scene.world.shapes[1].transformation.is_close(Transformation())
         assert isinstance(scene.world.shapes[2], Sphere)
@@ -1185,7 +1234,9 @@ class TestSceneFile(unittest.TestCase):
         # Check that the camera is ok
 
         assert isinstance(scene.camera, PerspectiveCamera)
-        assert scene.camera.transformation.is_close(rotation_z(30) * translation(Vec(-4, 0, 1)))
+        assert scene.camera.transformation.is_close(
+            rotation_z(30) * translation(Vec(-4, 0, 1))
+        )
         assert pytest.approx(1.0) == scene.camera.aspect_ratio
         assert pytest.approx(2.0) == scene.camera.screen_distance
 
