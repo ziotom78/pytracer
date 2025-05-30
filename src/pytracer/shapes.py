@@ -25,11 +25,12 @@
 
 from math import sqrt, atan2, acos, pi, floor
 from typing import Union
-from geometry import Point, Vec, Normal
-from hitrecord import Vec2d, HitRecord
-from ray import Ray
-from transformations import Transformation
-from materials import Material
+
+from pytracer.geometry import Point, Vec, Normal
+from pytracer.hitrecord import Vec2d, HitRecord
+from pytracer.ray import Ray
+from pytracer.transformations import Transformation
+from pytracer.materials import Material
 
 
 def _sphere_point_to_uv(point: Point) -> Vec2d:
@@ -62,7 +63,11 @@ class Shape:
 
     """
 
-    def __init__(self, transformation: Transformation = Transformation(), material: Material = Material()):
+    def __init__(
+        self,
+        transformation: Transformation = Transformation(),
+        material: Material = Material(),
+    ):
         """Create a shape, potentially associating a transformation to it"""
         self.transformation = transformation
         self.material = material
@@ -83,7 +88,9 @@ class Shape:
 class Sphere(Shape):
     """A 3D unit sphere centered on the origin of the axes"""
 
-    def __init__(self, transformation=Transformation(), material: Material = Material()):
+    def __init__(
+        self, transformation=Transformation(), material: Material = Material()
+    ):
         """Create a unit sphere, potentially associating a transformation to it"""
         super().__init__(transformation, material)
 
@@ -139,13 +146,17 @@ class Sphere(Shape):
         tmin = (-b - sqrt_delta) / (2.0 * a)
         tmax = (-b + sqrt_delta) / (2.0 * a)
 
-        return (inv_ray.tmin < tmin < inv_ray.tmax) or (inv_ray.tmin < tmax < inv_ray.tmax)
+        return (inv_ray.tmin < tmin < inv_ray.tmax) or (
+            inv_ray.tmin < tmax < inv_ray.tmax
+        )
 
 
 class Plane(Shape):
     """A 3D infinite plane parallel to the x and y axis and passing through the origin."""
 
-    def __init__(self, transformation=Transformation(), material: Material = Material()):
+    def __init__(
+        self, transformation=Transformation(), material: Material = Material()
+    ):
         """Create a xy plane, potentially associating a transformation to it"""
         super().__init__(transformation, material)
 
@@ -167,8 +178,11 @@ class Plane(Shape):
 
         return HitRecord(
             world_point=self.transformation * hit_point,
-            normal=self.transformation * Normal(0.0, 0.0, 1.0 if inv_ray.dir.z < 0.0 else -1.0),
-            surface_point=Vec2d(hit_point.x - floor(hit_point.x), hit_point.y - floor(hit_point.y)),
+            normal=self.transformation
+            * Normal(0.0, 0.0, 1.0 if inv_ray.dir.z < 0.0 else -1.0),
+            surface_point=Vec2d(
+                hit_point.x - floor(hit_point.x), hit_point.y - floor(hit_point.y)
+            ),
             t=t,
             ray=ray,
             material=self.material,

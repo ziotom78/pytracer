@@ -18,8 +18,8 @@
 
 from dataclasses import dataclass
 
-from colors import Color
-from geometry import Point
+from pytracer.colors import Color
+from pytracer.geometry import Point
 
 
 @dataclass
@@ -33,6 +33,7 @@ class PointLight:
     -   `color`: the color of the point light (an instance of :class:`.Color`)
     -   `linear_radius`: a floating-point number. If non-zero, this «linear radius» `r` is used to compute the solid
         angle subtended by the light at a given distance `d` through the formula `(r / d)²`."""
+
     position: Point
     color: Color
     linear_radius: float = 0.0

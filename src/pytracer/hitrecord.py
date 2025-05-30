@@ -19,9 +19,9 @@
 from dataclasses import dataclass
 from typing import Union
 
-from geometry import Point, Normal, Vec2d
-from materials import Material
-from ray import Ray
+from pytracer.geometry import Point, Normal, Vec2d
+from pytracer.materials import Material
+from pytracer.ray import Ray
 
 
 @dataclass
@@ -37,6 +37,7 @@ class HitRecord:
     -   `t`: a floating-point value specifying the distance from the origin of the ray where the hit happened
     -   `ray`: the ray that hit the surface
     """
+
     world_point: Point
     normal: Normal
     surface_point: Vec2d
@@ -50,9 +51,9 @@ class HitRecord:
             return False
 
         return (
-                self.world_point.is_close(other.world_point) and
-                self.normal.is_close(other.normal) and
-                self.surface_point.is_close(other.surface_point) and
-                (abs(self.t - other.t) < epsilon) and
-                self.ray.is_close(other.ray)
+            self.world_point.is_close(other.world_point)
+            and self.normal.is_close(other.normal)
+            and self.surface_point.is_close(other.surface_point)
+            and (abs(self.t - other.t) < epsilon)
+            and self.ray.is_close(other.ray)
         )

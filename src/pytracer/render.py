@@ -16,11 +16,11 @@
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
-from colors import Color, WHITE, BLACK
-from geometry import normalized_dot
-from pcg import PCG
-from ray import Ray
-from world import World
+from pytracer.colors import Color, WHITE, BLACK
+from pytracer.geometry import normalized_dot
+from pytracer.pcg import PCG
+from pytracer.ray import Ray
+from pytracer.world import World
 
 
 class Renderer:
@@ -34,7 +34,9 @@ class Renderer:
 
     def __call__(self, ray: Ray) -> Color:
         """Estimate the radiance along a ray"""
-        raise NotImplementedError("Unable to call Renderer.radiance, it is an abstract method")
+        raise NotImplementedError(
+            "Unable to call Renderer.radiance, it is an abstract method"
+        )
 
 
 class OnOffRenderer(Renderer):
@@ -67,8 +69,9 @@ class FlatRenderer(Renderer):
 
         material = hit.material
 
-        return (material.brdf.pigment.get_color(hit.surface_point) +
-                material.emitted_radiance.get_color(hit.surface_point))
+        return material.brdf.pigment.get_color(
+            hit.surface_point
+        ) + material.emitted_radiance.get_color(hit.surface_point)
 
 
 class PathTracer(Renderer):
@@ -78,8 +81,15 @@ class PathTracer(Renderer):
     maximum depth. It implements Russian roulette to reduce the number of recursive calls.
     """
 
-    def __init__(self, world: World, background_color: Color = BLACK, pcg: PCG = PCG(), num_of_rays: int = 10,
-                 max_depth: int = 10, russian_roulette_limit=3):
+    def __init__(
+        self,
+        world: World,
+        background_color: Color = BLACK,
+        pcg: PCG = PCG(),
+        num_of_rays: int = 10,
+        max_depth: int = 10,
+        russian_roulette_limit=3,
+    ):
         super().__init__(world, background_color)
         self.pcg = pcg
         self.num_of_rays = num_of_rays
@@ -96,7 +106,9 @@ class PathTracer(Renderer):
 
         hit_material = hit_record.material
         hit_color = hit_material.brdf.pigment.get_color(hit_record.surface_point)
-        emitted_radiance = hit_material.emitted_radiance.get_color(hit_record.surface_point)
+        emitted_radiance = hit_material.emitted_radiance.get_color(
+            hit_record.surface_point
+        )
 
         hit_color_lum = max(hit_color.r, hit_color.g, hit_color.b)
 
@@ -133,7 +145,12 @@ class PointLightRenderer(Renderer):
     This renderer is similar to what POV-Ray provides by default.
     """
 
-    def __init__(self, world: World, background_color: Color = BLACK, ambient_color: Color = Color(0.1, 0.1, 0.1)):
+    def __init__(
+        self,
+        world: World,
+        background_color: Color = BLACK,
+        ambient_color: Color = Color(0.1, 0.1, 0.1),
+    ):
         super().__init__(world, background_color)
         self.ambient_color = ambient_color
 
@@ -146,21 +163,34 @@ class PointLightRenderer(Renderer):
 
         result_color = self.ambient_color
         for cur_light in self.world.point_lights:
-            if self.world.is_point_visible(point = cur_light.position, observer_pos=hit_record.world_point):
+            if self.world.is_point_visible(
+                point=cur_light.position, observer_pos=hit_record.world_point
+            ):
                 distance_vec = hit_record.world_point - cur_light.position
                 distance = distance_vec.norm()
                 in_dir = distance_vec * (1.0 / distance)
                 cos_theta = max(0.0, normalized_dot(-in_dir, hit_record.normal))
 
-                distance_factor = (cur_light.linear_radius / distance)**2 if (cur_light.linear_radius > 0) else 1.0
+                distance_factor = (
+                    (cur_light.linear_radius / distance) ** 2
+                    if (cur_light.linear_radius > 0)
+                    else 1.0
+                )
 
-                emitted_color = hit_material.emitted_radiance.get_color(hit_record.surface_point)
+                emitted_color = hit_material.emitted_radiance.get_color(
+                    hit_record.surface_point
+                )
                 brdf_color = hit_material.brdf.eval(
                     normal=hit_record.normal,
                     in_dir=in_dir,
                     out_dir=-ray.dir,
                     uv=hit_record.surface_point,
                 )
-                result_color += (emitted_color + brdf_color) * cur_light.color * cos_theta * distance_factor
+                result_color += (
+                    (emitted_color + brdf_color)
+                    * cur_light.color
+                    * cos_theta
+                    * distance_factor
+                )
 
         return result_color

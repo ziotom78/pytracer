@@ -4,15 +4,31 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, Union, List, Set, Tuple
 
-from camera import Camera, PerspectiveCamera, OrthogonalCamera
-from colors import Color
-from geometry import Vec, Point
-from hdrimages import read_pfm_image
-from lights import PointLight
-from materials import Material, BRDF, Pigment, UniformPigment, CheckeredPigment, ImagePigment, DiffuseBRDF, SpecularBRDF
-from shapes import Sphere, Plane
-from transformations import translation, rotation_x, rotation_y, rotation_z, scaling, Transformation
-from world import World
+from pytracer.camera import Camera, PerspectiveCamera, OrthogonalCamera
+from pytracer.colors import Color
+from pytracer.geometry import Vec, Point
+from pytracer.hdrimages import read_pfm_image
+from pytracer.lights import PointLight
+from pytracer.materials import (
+    Material,
+    BRDF,
+    Pigment,
+    UniformPigment,
+    CheckeredPigment,
+    ImagePigment,
+    DiffuseBRDF,
+    SpecularBRDF,
+)
+from pytracer.shapes import Sphere, Plane
+from pytracer.transformations import (
+    translation,
+    rotation_x,
+    rotation_y,
+    rotation_z,
+    scaling,
+    Transformation,
+)
+from pytracer.world import World
 
 WHITESPACE = " \t\n\r"
 SYMBOLS = "()<>[],*"
@@ -28,6 +44,7 @@ class SourceLocation:
     - line_num: number of the line (starting from 1)
     - col_num: number of the column (starting from 1)
     """
+
     file_name: str = ""
     line_num: int = 0
     col_num: int = 0
@@ -36,6 +53,7 @@ class SourceLocation:
 @dataclass
 class Token:
     """A lexical token, used when parsing a scene file"""
+
     location: SourceLocation
 
 
@@ -48,6 +66,7 @@ class StopToken(Token):
 
 class KeywordEnum(Enum):
     """Enumeration for all the possible keywords recognized by the lexer"""
+
     NEW = 1
     MATERIAL = 2
     PLANE = 3
@@ -160,6 +179,7 @@ class GrammarError(BaseException):
     - `col_num`: the column number where the error was discovered (starting from 1)
     - `message`: a user-frendly error message
     """
+
     location: SourceLocation
     message: str
 
@@ -246,7 +266,9 @@ class InputStream:
 
         return StringToken(token_location, token)
 
-    def _parse_float_token(self, first_char: str, token_location: SourceLocation) -> LiteralNumberToken:
+    def _parse_float_token(
+        self, first_char: str, token_location: SourceLocation
+    ) -> LiteralNumberToken:
         token = first_char
         while True:
             ch = self.read_char()
@@ -260,14 +282,16 @@ class InputStream:
         try:
             value = float(token)
         except ValueError:
-            raise GrammarError(token_location, f"'{token}' is an invalid floating-point number")
+            raise GrammarError(
+                token_location, f"'{token}' is an invalid floating-point number"
+            )
 
         return LiteralNumberToken(token_location, value)
 
     def _parse_keyword_or_identifier_token(
-            self,
-            first_char: str,
-            token_location: SourceLocation,
+        self,
+        first_char: str,
+        token_location: SourceLocation,
     ) -> Union[KeywordToken, IdentifierToken]:
         token = first_char
         while True:
@@ -318,7 +342,9 @@ class InputStream:
             return self._parse_float_token(first_char=ch, token_location=token_location)
         elif ch.isalpha() or ch == "_":
             # Since it begins with an alphabetic character, it must either be a keyword or a identifier
-            return self._parse_keyword_or_identifier_token(first_char=ch, token_location=token_location)
+            return self._parse_keyword_or_identifier_token(
+                first_char=ch, token_location=token_location
+            )
         else:
             # We got some weird character, like '@` or `&`
             raise GrammarError(self.location, f"Invalid character {ch}")
@@ -332,6 +358,7 @@ class InputStream:
 @dataclass
 class Scene:
     """A scene read from a scene file"""
+
     materials: Dict[str, Material] = field(default_factory=dict)
     world: World = World()
     camera: Union[Camera, None] = None
@@ -346,7 +373,9 @@ def expect_symbol(input_file: InputStream, symbol: str):
         raise GrammarError(token.location, f"got '{token}' instead of '{symbol}'")
 
 
-def expect_keywords(input_file: InputStream, keywords: List[KeywordEnum]) -> KeywordEnum:
+def expect_keywords(
+    input_file: InputStream, keywords: List[KeywordEnum]
+) -> KeywordEnum:
     """Read a token from `input_file` and check that it is one of the keywords in `keywords`.
 
     Return the keyword as a :class:`.KeywordEnum` object."""
@@ -355,8 +384,10 @@ def expect_keywords(input_file: InputStream, keywords: List[KeywordEnum]) -> Key
         raise GrammarError(token.location, f"expected a keyword instead of '{token}'")
 
     if not token.keyword in keywords:
-        raise GrammarError(token.location,
-                           f"expected one of the keywords {','.join([str(x) for x in keywords])} instead of '{token}'")
+        raise GrammarError(
+            token.location,
+            f"expected one of the keywords {','.join([str(x) for x in keywords])} instead of '{token}'",
+        )
 
     return token.keyword
 
@@ -424,7 +455,9 @@ def parse_color(input_file: InputStream, scene: Scene) -> Color:
 
 
 def parse_pigment(input_file: InputStream, scene: Scene) -> Pigment:
-    keyword = expect_keywords(input_file, [KeywordEnum.UNIFORM, KeywordEnum.CHECKERED, KeywordEnum.IMAGE])
+    keyword = expect_keywords(
+        input_file, [KeywordEnum.UNIFORM, KeywordEnum.CHECKERED, KeywordEnum.IMAGE]
+    )
 
     expect_symbol(input_file, "(")
     if keyword == KeywordEnum.UNIFORM:
@@ -436,7 +469,9 @@ def parse_pigment(input_file: InputStream, scene: Scene) -> Pigment:
         color2 = parse_color(input_file, scene)
         expect_symbol(input_file, ",")
         num_of_steps = int(expect_number(input_file, scene))
-        result = CheckeredPigment(color1=color1, color2=color2, num_of_steps=num_of_steps)
+        result = CheckeredPigment(
+            color1=color1, color2=color2, num_of_steps=num_of_steps
+        )
     elif keyword == KeywordEnum.IMAGE:
         file_name = expect_string(input_file)
         with open(file_name, "rb") as image_file:
@@ -450,7 +485,9 @@ def parse_pigment(input_file: InputStream, scene: Scene) -> Pigment:
 
 
 def parse_brdf(input_file: InputStream, scene: Scene) -> BRDF:
-    brdf_keyword = expect_keywords(input_file, [KeywordEnum.DIFFUSE, KeywordEnum.SPECULAR])
+    brdf_keyword = expect_keywords(
+        input_file, [KeywordEnum.DIFFUSE, KeywordEnum.SPECULAR]
+    )
     expect_symbol(input_file, "(")
     pigment = parse_pigment(input_file, scene)
     expect_symbol(input_file, ")")
@@ -479,14 +516,17 @@ def parse_transformation(input_file, scene: Scene):
     result = Transformation()
 
     while True:
-        transformation_kw = expect_keywords(input_file, [
-            KeywordEnum.IDENTITY,
-            KeywordEnum.TRANSLATION,
-            KeywordEnum.ROTATION_X,
-            KeywordEnum.ROTATION_Y,
-            KeywordEnum.ROTATION_Z,
-            KeywordEnum.SCALING,
-        ])
+        transformation_kw = expect_keywords(
+            input_file,
+            [
+                KeywordEnum.IDENTITY,
+                KeywordEnum.TRANSLATION,
+                KeywordEnum.ROTATION_X,
+                KeywordEnum.ROTATION_Y,
+                KeywordEnum.ROTATION_Z,
+                KeywordEnum.SCALING,
+            ],
+        )
 
         if transformation_kw == KeywordEnum.IDENTITY:
             pass  # Do nothing (this is a primitive form of optimization!)
@@ -534,7 +574,9 @@ def parse_sphere(input_file: InputStream, scene: Scene) -> Sphere:
     transformation = parse_transformation(input_file, scene)
     expect_symbol(input_file, ")")
 
-    return Sphere(transformation=transformation, material=scene.materials[material_name])
+    return Sphere(
+        transformation=transformation, material=scene.materials[material_name]
+    )
 
 
 def parse_plane(input_file: InputStream, scene: Scene) -> Plane:
@@ -554,7 +596,9 @@ def parse_plane(input_file: InputStream, scene: Scene) -> Plane:
 
 def parse_camera(input_file: InputStream, scene) -> Camera:
     expect_symbol(input_file, "(")
-    type_kw = expect_keywords(input_file, [KeywordEnum.PERSPECTIVE, KeywordEnum.ORTHOGONAL])
+    type_kw = expect_keywords(
+        input_file, [KeywordEnum.PERSPECTIVE, KeywordEnum.ORTHOGONAL]
+    )
     expect_symbol(input_file, ",")
     transformation = parse_transformation(input_file, scene)
     expect_symbol(input_file, ",")
@@ -564,9 +608,15 @@ def parse_camera(input_file: InputStream, scene) -> Camera:
     expect_symbol(input_file, ")")
 
     if type_kw == KeywordEnum.PERSPECTIVE:
-        result = PerspectiveCamera(screen_distance=distance, aspect_ratio=aspect_ratio, transformation=transformation)
+        result = PerspectiveCamera(
+            screen_distance=distance,
+            aspect_ratio=aspect_ratio,
+            transformation=transformation,
+        )
     elif type_kw == KeywordEnum.ORTHOGONAL:
-        result = OrthogonalCamera(aspect_ratio=aspect_ratio, transformation=transformation)
+        result = OrthogonalCamera(
+            aspect_ratio=aspect_ratio, transformation=transformation
+        )
 
     return result
 
@@ -580,7 +630,11 @@ def parse_point_light(input_file: InputStream, scene: Scene) -> PointLight:
     radius = expect_number(input_file, scene)
     expect_symbol(input_file, ")")
 
-    return PointLight(position=Point(position.x, position.y, position.z), color=color, linear_radius=radius)
+    return PointLight(
+        position=Point(position.x, position.y, position.z),
+        color=color,
+        linear_radius=radius,
+    )
 
 
 def parse_scene(input_file: InputStream, variables: Dict[str, float] = {}) -> Scene:
@@ -607,8 +661,13 @@ def parse_scene(input_file: InputStream, variables: Dict[str, float] = {}) -> Sc
             variable_value = expect_number(input_file, scene)
             expect_symbol(input_file, ")")
 
-            if (variable_name in scene.float_variables) and not (variable_name in scene.overridden_variables):
-                raise GrammarError(location=variable_loc, message=f"variable «{variable_name}» cannot be redefined")
+            if (variable_name in scene.float_variables) and not (
+                variable_name in scene.overridden_variables
+            ):
+                raise GrammarError(
+                    location=variable_loc,
+                    message=f"variable «{variable_name}» cannot be redefined",
+                )
 
             if variable_name not in scene.overridden_variables:
                 # Only define the variable if it was not defined by the user *outside* the scene file
@@ -621,7 +680,9 @@ def parse_scene(input_file: InputStream, variables: Dict[str, float] = {}) -> Sc
             scene.world.add_shape(parse_plane(input_file, scene))
         elif what.keyword == KeywordEnum.CAMERA:
             if scene.camera:
-                raise GrammarError(what.location, "You cannot define more than one camera")
+                raise GrammarError(
+                    what.location, "You cannot define more than one camera"
+                )
 
             scene.camera = parse_camera(input_file, scene)
         elif what.keyword == KeywordEnum.MATERIAL:

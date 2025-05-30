@@ -15,14 +15,16 @@
 # IN THE SOFTWARE.
 
 
-from colors import Color
 import math
 import struct
 from enum import Enum
 
+from pytracer.colors import Color
+
 
 class Endianness(Enum):
     """Kinds of byte/bit endianness"""
+
     LITTLE_ENDIAN = 1
     BIG_ENDIAN = 2
 
@@ -71,8 +73,7 @@ class HdrImage:
 
     def valid_coordinates(self, x, y):
         """Return True if ``(x, y)`` are coordinates within the 2D matrix"""
-        return ((x >= 0) and (x < self.width) and
-                (y >= 0) and (y < self.height))
+        return (x >= 0) and (x < self.width) and (y >= 0) and (y < self.height)
 
     def pixel_offset(self, x, y):
         """Return the position in the 1D array of the specified pixel"""
@@ -152,16 +153,20 @@ class HdrImage:
         and ``HdrImage.clamp_image`` to do this.
         """
         from PIL import Image
+
         img = Image.new("RGB", (self.width, self.height))
 
         for y in range(self.height):
             for x in range(self.width):
                 cur_color = self.get_pixel(x, y)
-                img.putpixel(xy=(x, y), value=(
-                    int(255 * math.pow(cur_color.r, 1 / gamma)),
-                    int(255 * math.pow(cur_color.g, 1 / gamma)),
-                    int(255 * math.pow(cur_color.b, 1 / gamma)),
-                ))
+                img.putpixel(
+                    xy=(x, y),
+                    value=(
+                        int(255 * math.pow(cur_color.r, 1 / gamma)),
+                        int(255 * math.pow(cur_color.g, 1 / gamma)),
+                        int(255 * math.pow(cur_color.b, 1 / gamma)),
+                    ),
+                )
 
         img.save(stream, format=format)
 
