@@ -1,5 +1,7 @@
 # HEAD
 
+# Version 2.0.0
+
 -   **Breaking change**: stop supporting Python 3.7–3.9, add support for Python 3.10 and later, make the program callable using `python3 -m pytracer`
 
 # Version 1.0.0
