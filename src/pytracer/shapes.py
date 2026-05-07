@@ -102,16 +102,17 @@ class Sphere(Shape):
         inv_ray = ray.transform(self.transformation.inverse())
         origin_vec = inv_ray.origin.to_vec()
         a = inv_ray.dir.squared_norm()
-        b = 2.0 * origin_vec.dot(inv_ray.dir)
-        c = origin_vec.squared_norm() - 1.0
+        bhalf = origin_vec.dot(inv_ray.dir)
 
-        delta = b * b - 4.0 * a * c
-        if delta <= 0.0:
+        cross = origin_vec.cross(inv_ray.dir)
+
+        delta4 = a - cross.squared_norm()
+        if delta4 <= 0.0:
             return None
 
-        sqrt_delta = sqrt(delta)
-        tmin = (-b - sqrt_delta) / (2.0 * a)
-        tmax = (-b + sqrt_delta) / (2.0 * a)
+        sqrt_delta4 = sqrt(delta4)
+        tmin = (-bhalf - sqrt_delta4) / a
+        tmax = (-bhalf + sqrt_delta4) / a
 
         if (tmin > inv_ray.tmin) and (tmin < inv_ray.tmax):
             first_hit_t = tmin
