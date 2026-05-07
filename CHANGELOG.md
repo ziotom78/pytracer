@@ -1,5 +1,7 @@
 # HEAD
 
+-   Fix issue [#22](https://github.com/ziotom78/pytracer/issues/22) ([PR#23](https://github.com/ziotom78/pytracer/pull/23))
+
 # Version 2.0.1
 
 -   Fix issue [#19](https://github.com/ziotom78/pytracer/issues/19) ([#21](https://github.com/ziotom78/pytracer/pull/21))

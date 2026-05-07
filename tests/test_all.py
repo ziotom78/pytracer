@@ -747,6 +747,12 @@ class TestSphere(unittest.TestCase):
         ray6 = Ray(origin=Point(2.0, 0.0, -0.5), dir=-VEC_X)
         assert sphere.ray_intersection(ray6).surface_point.is_close(Vec2d(0.0, 2 / 3))
 
+    def test_catastrophic_cancellation(self):
+        sphere = Sphere(transformation=scaling(Vec(0.1, 0.1, 0.1)))
+
+        ray = Ray(origin=Point(-1e7, 0.095, 0.0), dir=VEC_X)
+        assert sphere.ray_intersection(ray)
+
 
 class TestPlane(unittest.TestCase):
     def testHit(self):
