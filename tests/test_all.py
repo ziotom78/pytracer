@@ -170,9 +170,23 @@ class TestHdrImage(unittest.TestCase):
     def test_get_set_pixel(self):
         img = HdrImage(7, 4)
 
+        reference_x = 3
+        reference_y = 2
         reference_color = Color(1.0, 2.0, 3.0)
-        img.set_pixel(3, 2, reference_color)
-        assert reference_color.is_close(img.get_pixel(3, 2))
+        black = Color()  # This will be the color of all the pixels but one
+
+        # Change the value of one specific pixel in a all-black image
+        img.set_pixel(reference_x, reference_y, reference_color)
+
+        # Now check that *one and only one* pixel was modified. This
+        # kind of test can catch many types of bugs
+        for row in range(img.height):
+            for col in range(img.width):
+                cur_color = img.get_pixel(col, row)
+                if col == reference_x and row == reference_y:
+                    assert reference_color.is_close(cur_color), f"{col=}, {row=}"
+                else:
+                    assert black.is_close(cur_color), f"{col=}, {row=}"
 
     def test_pfm_save(self):
         img = HdrImage(3, 2)
