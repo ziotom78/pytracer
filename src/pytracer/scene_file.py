@@ -617,6 +617,12 @@ def parse_camera(input_file: InputStream, scene) -> Camera:
         result = OrthogonalCamera(
             aspect_ratio=aspect_ratio, transformation=transformation
         )
+    else:
+        assert False, (
+            "This should not happen, please report an issue at "
+            "<https://github.com/ziotom78/pytracer/issues> pasting the traceback"
+            "printed on this terminal"
+        )
 
     return result
 
